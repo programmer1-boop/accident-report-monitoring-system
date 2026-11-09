@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/arms_background">
+
+    <!-- Fragment Container for Sliding Tab Content (Home, History, Alerts each with their own header + bell) -->
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavigation" />
+
+    <!-- Responder Bottom Navigation Bar: Navy Blue Background with Red Icons (Permanently Fixed!) -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@color/arms_navy"
+        app:elevation="12dp"
+        app:itemIconTint="#DC2626"
+        app:itemTextColor="#DC2626"
+        app:menu="@menu/menu_responder_bottom" />
+
+</RelativeLayout>

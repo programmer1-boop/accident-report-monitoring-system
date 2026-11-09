@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- ARMS Public Safety Palette (Concept Board Exact Match) -->
+    <color name="primary_navy">#142B4A</color>
+    <color name="emergency_red">#D92D35</color>
+    <color name="main_background">#F4F6F9</color>
+    <color name="secondary_text">#667085</color>
+    <color name="success_green">#16865C</color>
+    <color name="warning_amber">#D97706</color>
+    <color name="card_background">#FFFFFFFF</color>
+    <color name="divider_color">#E6EAF0</color>
+
+    <!-- ARMS Prefix Aliases -->
+    <color name="arms_navy">#142B4A</color>
+    <color name="arms_red">#D92D35</color>
+    <color name="arms_white">#FFFFFF</color>
+    <color name="arms_background">#F4F6F9</color>
+    <color name="arms_secondary_text">#667085</color>
+    <color name="arms_green">#16865C</color>
+    <color name="arms_amber">#D97706</color>
+    <color name="arms_card_bg">#FFFFFF</color>
+    <color name="arms_divider">#E6EAF0</color>
+</resources>

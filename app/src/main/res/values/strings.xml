@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">ARMS</string>
+    <string name="app_full_title">Accident Reports and Monitoring System</string>
+    <string name="app_tagline">Report. Monitor. Respond.</string>
+    <string name="service_area">Valencia City, Bukidnon, Philippines</string>
+
+    <!-- Citizen Navigation Item Labels -->
+    <string name="nav_home">Home</string>
+    <string name="nav_my_reports">My Reports</string>
+    <string name="nav_camera">Report</string>
+    <string name="nav_notifications">Alerts</string>
+    <string name="nav_profile">Profile</string>
+</resources>

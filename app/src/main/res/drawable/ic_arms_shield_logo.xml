@@ -1,0 +1,46 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Outer White Shield Outline -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M12,2L3,5.5V11.5C3,16.8 6.8,21.5 12,23C17.2,21.5 21,16.8 21,11.5V5.5L12,2Z" />
+
+    <!-- Flashing Light Rays on Top of Siren -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M12,1.5 V3.2 M8.5,2.5 L9.5,3.8 M15.5,2.5 L14.5,3.8" />
+
+    <!-- Red Emergency Siren / Bell Dome -->
+    <path
+        android:fillColor="#E53945"
+        android:pathData="M12,3.8 A2.5,2.5 0 0,1 14.5,6.3 V8.2 H9.5 V6.3 A2.5,2.5 0 0,1 12,3.8 Z" />
+
+    <!-- White Siren Base / Rim -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8.5,8.2 H15.5 V10.2 H8.5 Z" />
+
+    <!-- White Road / Highway Graphic Inside Shield with Dashed Divider -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,10.2 L7,20 M12,10.2 L17,20" />
+
+    <!-- Dashed Center Divider on Road -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M12,12.5 V15.5 M12,17.5 V19.5" />
+</vector>
