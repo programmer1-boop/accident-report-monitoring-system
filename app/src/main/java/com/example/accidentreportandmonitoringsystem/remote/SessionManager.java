@@ -2,18 +2,9 @@ package com.example.accidentreportandmonitoringsystem.remote;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Environment;
-import android.util.Base64;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -34,6 +25,7 @@ public class SessionManager {
     private static final String KEY_RESOLVED_REFS = "resolved_incident_refs";
     private static final String KEY_HAS_READ_ALERTS = "has_read_alerts";
     private static final String KEY_ALERTS_HISTORY = "citizen_notifications_history";
+    private static final String KEY_REGISTERED_USERS_JSON = "registered_users_json";
 
     private final Context context;
     private final SharedPreferences pref;
@@ -43,32 +35,44 @@ public class SessionManager {
         this.context = context.getApplicationContext();
         this.pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         this.editor = pref.edit();
-        restoreFromPublicDownloadBackupIfNeeded();
     }
 
-    private void restoreFromPublicDownloadBackupIfNeeded() {
+    public void saveRegisteredUser(JSONObject userObj) {
         try {
-            String existing = pref.getString(KEY_LOCAL_REPORTS, "[]");
-            if (existing.equals("[]")) {
-                File publicDownloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                File backupFile = new File(publicDownloadDir, "arms_reports_backup.json");
-                if (backupFile.exists()) {
-                    try (FileInputStream fis = new FileInputStream(backupFile);
-                         BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line);
-                        }
-                        String content = sb.toString();
-                        if (!content.isEmpty()) {
-                            editor.putString(KEY_LOCAL_REPORTS, content);
-                            editor.apply();
-                        }
-                    }
+            JSONArray users = getRegisteredUsers();
+            String email = userObj.optString("email", "").toLowerCase();
+            boolean exists = false;
+            for (int i = 0; i < users.length(); i++) {
+                if (users.getJSONObject(i).optString("email", "").toLowerCase().equals(email)) {
+                    exists = true;
+                    break;
                 }
             }
+            if (!exists) {
+                users.put(userObj);
+                editor.putString(KEY_REGISTERED_USERS_JSON, users.toString());
+                editor.apply();
+                ValenciaGlobalUserStore.addUser(userObj);
+            }
         } catch (Exception ignored) {}
+    }
+
+    public JSONArray getRegisteredUsers() {
+        try {
+            String json = pref.getString(KEY_REGISTERED_USERS_JSON, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                ValenciaGlobalUserStore.addUser(arr.getJSONObject(i));
+            }
+            return arr;
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    public boolean isLoggedIn() {
+        String token = getAuthToken();
+        return token != null && !token.trim().isEmpty();
     }
 
     public void saveAuthToken(String token) {
@@ -95,7 +99,7 @@ public class SessionManager {
     }
 
     public String getUserName() {
-        return pref.getString(KEY_USER_NAME, "Citizen");
+        return pref.getString(KEY_USER_NAME, "ARMS User");
     }
 
     public void saveUserEmail(String email) {
@@ -104,7 +108,7 @@ public class SessionManager {
     }
 
     public String getUserEmail() {
-        return pref.getString(KEY_USER_EMAIL, "citizen@arms.gov.ph");
+        return pref.getString(KEY_USER_EMAIL, "user@arms.gov.ph");
     }
 
     public void saveUserPhone(String phone) {
@@ -113,7 +117,7 @@ public class SessionManager {
     }
 
     public String getUserPhone() {
-        return pref.getString(KEY_USER_PHONE, "09171234567");
+        return pref.getString(KEY_USER_PHONE, "09123456789");
     }
 
     public void saveUserAgency(String agency) {
@@ -122,7 +126,7 @@ public class SessionManager {
     }
 
     public String getUserAgency() {
-        return pref.getString(KEY_USER_AGENCY, "CDRRMO");
+        return pref.getString(KEY_USER_AGENCY, "General");
     }
 
     public void saveGuestTrackingToken(String token) {
@@ -143,214 +147,185 @@ public class SessionManager {
         return pref.getString(KEY_PROFILE_IMAGE_URI, null);
     }
 
-    public void saveHasReadAlerts(boolean read) {
-        editor.putBoolean(KEY_HAS_READ_ALERTS, read);
-        editor.apply();
-    }
-
-    public boolean hasReadAlerts() {
-        return pref.getBoolean(KEY_HAS_READ_ALERTS, false);
-    }
-
-    public void saveAlertNotification(JSONObject alert) {
+    public void saveLocalReport(JSONObject report) {
         try {
-            String existing = pref.getString(KEY_ALERTS_HISTORY, "[]");
-            JSONArray arr = new JSONArray(existing);
-            JSONArray newArr = new JSONArray();
-            newArr.put(alert);
-            for (int i = 0; i < arr.length(); i++) {
-                newArr.put(arr.getJSONObject(i));
+            JSONArray reports = getLocalReports();
+            JSONArray newReports = new JSONArray();
+            newReports.put(report);
+            for (int i = 0; i < reports.length(); i++) {
+                newReports.put(reports.getJSONObject(i));
             }
-            editor.putString(KEY_ALERTS_HISTORY, newArr.toString());
+            editor.putString(KEY_LOCAL_REPORTS, newReports.toString());
             editor.apply();
         } catch (Exception ignored) {}
     }
 
-    public JSONArray getAlertNotifications() {
+    public void saveLocalReportWithMedia(String type, String ref, String location, String desc, String status, double lat, double lng, String photoB64, boolean hasVideo, String videoUri) {
         try {
-            String existing = pref.getString(KEY_ALERTS_HISTORY, "[]");
-            return new JSONArray(existing);
+            JSONObject rep = new JSONObject();
+            rep.put("incident_type", type);
+            rep.put("incident_reference", ref);
+            rep.put("landmark_address", location);
+            rep.put("description", desc);
+            rep.put("current_status", status);
+            rep.put("latitude", lat);
+            rep.put("longitude", lng);
+            rep.put("photo_base64", photoB64);
+            rep.put("has_video", hasVideo);
+            rep.put("video_uri", videoUri);
+            rep.put("timestamp_millis", System.currentTimeMillis());
+            rep.put("created_at", new SimpleDateFormat("hh:mm a", Locale.getDefault()).format(new Date()));
+            saveLocalReport(rep);
+            ValenciaGlobalIncidentStore.addReport(rep);
+        } catch (Exception ignored) {}
+    }
+
+    public JSONArray getLocalReports() {
+        try {
+            String json = pref.getString(KEY_LOCAL_REPORTS, "[]");
+            return new JSONArray(json);
         } catch (Exception e) {
             return new JSONArray();
         }
     }
 
-    public void saveLocalReport(String type, String ref, String location, String description, String status) {
-        saveLocalReportWithPhoto(type, ref, location, description, status, 7.9120, 125.0980, "");
-    }
-
-    public void saveLocalReportWithCoords(String type, String ref, String location, String description, String status, double lat, double lng) {
-        saveLocalReportWithPhoto(type, ref, location, description, status, lat, lng, "");
-    }
-
-    public void saveLocalReportWithPhoto(String type, String ref, String location, String description, String status, double lat, double lng, String photoBase64) {
-        saveLocalReportWithMedia(type, ref, location, description, status, lat, lng, photoBase64, false, "");
-    }
-
-    public void saveLocalReportWithMedia(String type, String ref, String location, String description, String status, double lat, double lng, String photoBase64, boolean hasVideo, String videoUri) {
-        try {
-            if (photoBase64 == null) photoBase64 = "";
-
-            String existing = pref.getString(KEY_LOCAL_REPORTS, "[]");
-            JSONArray arr = new JSONArray(existing);
-
-            // Prevent duplicate local reports by reference
-            for (int i = 0; i < arr.length(); i++) {
-                if (arr.getJSONObject(i).optString("incident_reference", "").equals(ref)) {
-                    return; // Already saved locally, prevent duplicate!
-                }
-            }
-
-            JSONObject obj = new JSONObject();
-            obj.put("incident_reference", ref);
-            obj.put("incident_type", type);
-            obj.put("current_status", status);
-            obj.put("landmark_address", location);
-            obj.put("description", description);
-            obj.put("latitude", lat);
-            obj.put("longitude", lng);
-            obj.put("photo_base64", photoBase64);
-            obj.put("has_video", hasVideo);
-            obj.put("video_uri", videoUri != null ? videoUri : "");
-            obj.put("assigned_responders", "BFP");
-            obj.put("timestamp_millis", System.currentTimeMillis());
-            obj.put("created_at", new SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()).format(new Date()));
-            
-            JSONArray newArr = new JSONArray();
-            newArr.put(obj);
-            for (int i = 0; i < arr.length(); i++) {
-                newArr.put(arr.getJSONObject(i));
-            }
-            String jsonStr = newArr.toString();
-            editor.putString(KEY_LOCAL_REPORTS, jsonStr);
-            editor.apply();
-
-            try {
-                File publicDownloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                if (!publicDownloadDir.exists()) publicDownloadDir.mkdirs();
-                File backupFile = new File(publicDownloadDir, "arms_reports_backup.json");
-                try (FileOutputStream fos = new FileOutputStream(backupFile)) {
-                    fos.write(jsonStr.getBytes(StandardCharsets.UTF_8));
-                }
-            } catch (Exception ignored) {}
-        } catch (Exception ignored) {}
-    }
-
     public void updateLocalReportStatus(String ref, String newStatus) {
         try {
-            String existing = pref.getString(KEY_LOCAL_REPORTS, "[]");
-            JSONArray arr = new JSONArray(existing);
-            JSONArray newArr = new JSONArray();
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
+            JSONArray reports = getLocalReports();
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < reports.length(); i++) {
+                JSONObject obj = reports.getJSONObject(i);
                 if (obj.optString("incident_reference").equals(ref)) {
                     obj.put("current_status", newStatus);
                 }
-                newArr.put(obj);
+                updated.put(obj);
             }
-            String jsonStr = newArr.toString();
-            editor.putString(KEY_LOCAL_REPORTS, jsonStr);
+            editor.putString(KEY_LOCAL_REPORTS, updated.toString());
             editor.apply();
         } catch (Exception ignored) {}
     }
 
     public void updateLocalReportAssignedResponders(String ref, String assignedResponders) {
         try {
-            String existing = pref.getString(KEY_LOCAL_REPORTS, "[]");
-            JSONArray arr = new JSONArray(existing);
-            JSONArray newArr = new JSONArray();
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
+            JSONArray reports = getLocalReports();
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < reports.length(); i++) {
+                JSONObject obj = reports.getJSONObject(i);
                 if (obj.optString("incident_reference").equals(ref)) {
                     obj.put("assigned_responders", assignedResponders);
                 }
-                newArr.put(obj);
+                updated.put(obj);
             }
-            String jsonStr = newArr.toString();
-            editor.putString(KEY_LOCAL_REPORTS, jsonStr);
+            editor.putString(KEY_LOCAL_REPORTS, updated.toString());
             editor.apply();
         } catch (Exception ignored) {}
     }
 
-    public void markIncidentResolved(String ref) {
+    public void saveResolvedReportToHistory(JSONObject report) {
         try {
-            String existing = pref.getString(KEY_RESOLVED_REFS, "[]");
-            JSONArray arr = new JSONArray(existing);
-            boolean found = false;
-            for (int i = 0; i < arr.length(); i++) {
-                if (arr.getString(i).equals(ref)) found = true;
+            JSONArray history = getResolvedHistory();
+            String ref = report.optString("incident_reference", "");
+            JSONArray newHistory = new JSONArray();
+            newHistory.put(report);
+            for (int i = 0; i < history.length(); i++) {
+                JSONObject item = history.getJSONObject(i);
+                if (!item.optString("incident_reference", "").equals(ref)) {
+                    newHistory.put(item);
+                }
             }
-            if (!found) {
-                arr.put(ref);
-                editor.putString(KEY_RESOLVED_REFS, arr.toString());
-                editor.apply();
-            }
+            editor.putString(KEY_RESOLVED_HISTORY, newHistory.toString());
+            editor.apply();
         } catch (Exception ignored) {}
+    }
+
+    public void saveResolvedHistory(JSONObject report) {
+        saveResolvedReportToHistory(report);
+    }
+
+    public JSONArray getResolvedHistory() {
+        try {
+            String json = pref.getString(KEY_RESOLVED_HISTORY, "[]");
+            return new JSONArray(json);
+        } catch (Exception e) {
+            return new JSONArray();
+        }
     }
 
     public boolean isIncidentResolved(String ref) {
         try {
-            String existing = pref.getString(KEY_RESOLVED_REFS, "[]");
-            JSONArray arr = new JSONArray(existing);
-            for (int i = 0; i < arr.length(); i++) {
-                if (arr.getString(i).equals(ref)) return true;
+            JSONArray history = getResolvedHistory();
+            for (int i = 0; i < history.length(); i++) {
+                if (history.getJSONObject(i).optString("incident_reference", "").equals(ref)) {
+                    return true;
+                }
             }
         } catch (Exception ignored) {}
         return false;
     }
 
-    public void saveResolvedHistory(JSONObject report) {
+    public void markIncidentResolved(String ref) {
         try {
-            if (!report.has("timestamp_millis")) {
-                report.put("timestamp_millis", System.currentTimeMillis());
+            JSONArray reports = getLocalReports();
+            for (int i = 0; i < reports.length(); i++) {
+                JSONObject obj = reports.getJSONObject(i);
+                if (obj.optString("incident_reference", "").equals(ref)) {
+                    obj.put("current_status", "RESOLVED");
+                    saveResolvedHistory(obj);
+                }
             }
-            String existing = pref.getString(KEY_RESOLVED_HISTORY, "[]");
-            JSONArray arr = new JSONArray(existing);
-            JSONArray newArr = new JSONArray();
-            report.put("current_status", "RESOLVED");
-            newArr.put(report);
-            for (int i = 0; i < arr.length(); i++) {
-                newArr.put(arr.getJSONObject(i));
+            updateLocalReportStatus(ref, "RESOLVED");
+            ValenciaGlobalIncidentStore.resolveReport(ref);
+        } catch (Exception ignored) {}
+    }
+
+    public void saveHasReadAlerts(boolean read) {
+        editor.putBoolean(KEY_HAS_READ_ALERTS, read);
+        editor.apply();
+    }
+
+    public boolean getHasReadAlerts() {
+        return pref.getBoolean(KEY_HAS_READ_ALERTS, false);
+    }
+
+    public boolean hasReadAlerts() {
+        return getHasReadAlerts();
+    }
+
+    public void saveNotificationHistory(JSONArray alerts) {
+        editor.putString(KEY_ALERTS_HISTORY, alerts.toString());
+        editor.apply();
+    }
+
+    public void saveAlertNotification(JSONObject notif) {
+        try {
+            JSONArray history = getNotificationHistory();
+            JSONArray newHistory = new JSONArray();
+            newHistory.put(notif);
+            for (int i = 0; i < history.length(); i++) {
+                newHistory.put(history.getJSONObject(i));
             }
-            editor.putString(KEY_RESOLVED_HISTORY, newArr.toString());
+            editor.putString(KEY_ALERTS_HISTORY, newHistory.toString());
             editor.apply();
         } catch (Exception ignored) {}
     }
 
-    public JSONArray getResolvedHistory() {
+    public JSONArray getNotificationHistory() {
         try {
-            String existing = pref.getString(KEY_RESOLVED_HISTORY, "[]");
-            return new JSONArray(existing);
+            String json = pref.getString(KEY_ALERTS_HISTORY, "[]");
+            return new JSONArray(json);
         } catch (Exception e) {
             return new JSONArray();
         }
     }
 
-    public JSONArray getLocalReports() {
-        try {
-            String existing = pref.getString(KEY_LOCAL_REPORTS, "[]");
-            return new JSONArray(existing);
-        } catch (Exception e) {
-            return new JSONArray();
-        }
-    }
-
-    public boolean isLoggedIn() {
-        return getAuthToken() != null;
+    public JSONArray getAlertNotifications() {
+        return getNotificationHistory();
     }
 
     public void clearSession() {
-        String savedAvatar = getProfileImageUri();
-        String savedLocalReports = pref.getString(KEY_LOCAL_REPORTS, "[]");
-        String savedHistory = pref.getString(KEY_RESOLVED_HISTORY, "[]");
-        String savedResolvedRefs = pref.getString(KEY_RESOLVED_REFS, "[]");
+        String registeredUsersJson = pref.getString(KEY_REGISTERED_USERS_JSON, "[]");
         editor.clear();
-        if (savedAvatar != null && !savedAvatar.isEmpty()) {
-            editor.putString(KEY_PROFILE_IMAGE_URI, savedAvatar);
-        }
-        editor.putString(KEY_LOCAL_REPORTS, savedLocalReports);
-        editor.putString(KEY_RESOLVED_HISTORY, savedHistory);
-        editor.putString(KEY_RESOLVED_REFS, savedResolvedRefs);
+        editor.putString(KEY_REGISTERED_USERS_JSON, registeredUsersJson);
         editor.apply();
     }
 }

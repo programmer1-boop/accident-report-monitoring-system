@@ -125,22 +125,21 @@ public class CitizenHomeFragment extends Fragment {
                     if (ivThumb != null) {
                         try {
                             if (photoBase64 != null && !photoBase64.trim().isEmpty()) {
-                                byte[] decoded = Base64.decode(photoBase64, Base64.NO_WRAP);
-                                Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-                                if (bmp != null) {
-                                    ivThumb.setImageBitmap(bmp);
-                                }
+                                new Thread(() -> {
+                                    try {
+                                        byte[] decoded = Base64.decode(photoBase64, Base64.DEFAULT | Base64.NO_WRAP);
+                                        Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+                                        if (bmp != null && isAdded() && getActivity() != null) {
+                                            requireActivity().runOnUiThread(() -> ivThumb.setImageBitmap(bmp));
+                                        }
+                                    } catch (Exception ignored) {}
+                                }).start();
                             } else {
-                                Bitmap bmp = Bitmap.createBitmap(200, 150, Bitmap.Config.ARGB_8888);
-                                android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
-                                canvas.drawColor(android.graphics.Color.parseColor("#142B4A"));
-                                android.graphics.Paint paint = new android.graphics.Paint();
-                                paint.setColor(android.graphics.Color.WHITE);
-                                paint.setTextSize(24f);
-                                canvas.drawText("ARMS", 20f, 85f, paint);
-                                ivThumb.setImageBitmap(bmp);
+                                ivThumb.setImageResource(R.drawable.ic_reports);
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                            ivThumb.setImageResource(R.drawable.ic_reports);
+                        }
                     }
 
                     cardView.setOnClickListener(v -> {
@@ -150,9 +149,6 @@ public class CitizenHomeFragment extends Fragment {
                         intent.putExtra("status", status);
                         intent.putExtra("location", address);
                         intent.putExtra("description", desc);
-                        intent.putExtra("photo_base64", photoBase64);
-                        intent.putExtra("has_video", hasVideo);
-                        intent.putExtra("video_uri", videoUri);
                         startActivity(intent);
                     });
 

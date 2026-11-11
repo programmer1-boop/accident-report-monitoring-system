@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/arms_background"
+    android:background="#F8FAFC"
     android:orientation="vertical">
 
     <!-- Top Bar: Navy Blue Header with Notification Bell -->
@@ -65,13 +65,15 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Top Navy Greeting & Stat Cards Header Block matching Concept Board -->
+            <!-- Top White Greeting & Stat Cards Header Block with Shadow & Border -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/arms_navy"
+                app:cardBackgroundColor="@color/arms_card_bg"
                 app:cardCornerRadius="24dp"
-                app:cardElevation="6dp">
+                app:cardElevation="3dp"
+                app:strokeColor="#E2E8F0"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -83,7 +85,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Good evening!"
-                        android:textColor="@color/arms_white"
+                        android:textColor="@color/arms_navy"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -93,7 +95,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="Emergency Response Team"
-                        android:textColor="#C2CFDE"
+                        android:textColor="@color/arms_secondary_text"
                         android:textSize="13sp" />
 
                     <!-- 2 Stat Cards (Ongoing & Resolved) -->
@@ -109,9 +111,11 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
                             android:layout_weight="1"
-                            app:cardBackgroundColor="@color/arms_card_bg"
+                            app:cardBackgroundColor="#FFF3E0"
                             app:cardCornerRadius="16dp"
-                            app:cardElevation="2dp">
+                            app:cardElevation="1dp"
+                            app:strokeColor="#FCD34D"
+                            app:strokeWidth="1dp">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -144,9 +148,11 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="6dp"
                             android:layout_weight="1"
-                            app:cardBackgroundColor="@color/arms_card_bg"
+                            app:cardBackgroundColor="#E8F5E9"
                             app:cardCornerRadius="16dp"
-                            app:cardElevation="2dp">
+                            app:cardElevation="1dp"
+                            app:strokeColor="#86EFAC"
+                            app:strokeWidth="1dp">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
@@ -177,11 +183,68 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Emergency Hotline Card with Rotating Animated Gradient Border -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardResponderHotline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/arms_card_bg"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Emergency Hotline"
+                        android:textColor="@color/arms_navy"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Valencia City Command Center"
+                        android:textColor="@color/arms_secondary_text"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tvResponderHotlineNum"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="(088) 828-1234"
+                        android:textColor="#D92D39"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCallResponderHotline"
+                        style="@style/Widget.ARMS.Button.Emergency"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="16dp"
+                        android:text="Call Hotline"
+                        android:textSize="14sp"
+                        app:cornerRadius="12dp"
+                        app:elevation="2dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- My Assigned Incidents Section Header -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="12dp"
                 android:paddingHorizontal="4dp">
 
                 <TextView

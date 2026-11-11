@@ -11,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.accidentreportandmonitoringsystem.remote.SessionManager;
+import com.example.accidentreportandmonitoringsystem.remote.ValenciaGlobalIncidentStore;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -31,38 +32,29 @@ public class CitizenReportDetailsActivity extends AppCompatActivity {
             ibBack.setOnClickListener(v -> finish());
         }
 
-        String incidentType = getIntent().getStringExtra("incident_type");
         String reference = getIntent().getStringExtra("incident_ref");
+        String incidentType = getIntent().getStringExtra("incident_type");
         String status = getIntent().getStringExtra("status");
         String location = getIntent().getStringExtra("location");
-        String photoBase64 = getIntent().getStringExtra("photo_base64");
+        String description = getIntent().getStringExtra("description");
 
-        // BULLETPROOF BACKUP LOOKUP: If photoBase64 is empty, lookup by reference
-        if ((photoBase64 == null || photoBase64.isEmpty()) && reference != null) {
-            try {
-                SessionManager sm = new SessionManager(this);
-                JSONArray reports = sm.getLocalReports();
-                for (int i = 0; i < reports.length(); i++) {
-                    JSONObject rep = reports.getJSONObject(i);
-                    if (rep.optString("incident_reference", "").equals(reference)) {
-                        photoBase64 = rep.optString("photo_base64", "");
-                        if (status == null || status.isEmpty()) {
-                            status = rep.optString("current_status", "SUBMITTED");
-                        }
-                        if (location == null || location.isEmpty()) {
-                            location = rep.optString("landmark_address", "");
-                        }
-                        break;
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
+        if (incidentType == null || incidentType.isEmpty()) incidentType = "EMERGENCY";
+        if (reference == null || reference.isEmpty()) reference = "ARMS-VAL";
+        if (status == null || status.isEmpty()) status = "DISPATCHED";
+        if (location == null || location.isEmpty()) location = "Valencia City";
 
+        // Bind text details immediately on main thread for instant zero-lag response
+        bindTextDetails(reference, incidentType, status, location, description);
+
+        // Load photo evidence asynchronously on background thread
+        loadEvidencePhotoAsync(reference);
+    }
+
+    private void bindTextDetails(String reference, String incidentType, String status, String location, String description) {
         TextView tvDetailTitle = findViewById(R.id.tvDetailTitle);
         TextView tvDetailTimestamp = findViewById(R.id.tvDetailTimestamp);
         tvDetailStatus = findViewById(R.id.tvDetailStatus);
         TextView tvDetailLocation = findViewById(R.id.tvDetailLocation);
-        ImageView ivEvidencePhoto = findViewById(R.id.ivEvidencePhoto);
 
         ivStepAccept = findViewById(R.id.ivStepAccept);
         tvStepAccept = findViewById(R.id.tvStepAccept);
@@ -79,14 +71,14 @@ public class CitizenReportDetailsActivity extends AppCompatActivity {
         ivStepResolved = findViewById(R.id.ivStepResolved);
         tvStepResolved = findViewById(R.id.tvStepResolved);
 
-        if (incidentType != null && tvDetailTitle != null) {
+        if (tvDetailTitle != null) {
             tvDetailTitle.setText(incidentType.replace("_", " "));
         }
         if (reference != null && tvDetailTimestamp != null) {
             tvDetailTimestamp.setText("Ref: #" + reference);
         }
 
-        if (location != null && tvDetailLocation != null) {
+        if (tvDetailLocation != null) {
             String shortLocation = location;
             if (shortLocation.contains("(")) {
                 shortLocation = shortLocation.substring(0, shortLocation.indexOf("(")).trim();
@@ -100,26 +92,59 @@ public class CitizenReportDetailsActivity extends AppCompatActivity {
             tvDetailLocation.setText(shortLocation);
         }
 
-        if (status != null) {
-            updateSequentialTimeline(status);
-        }
+        updateSequentialTimeline(status);
+    }
 
-        View cardEvidenceCard = findViewById(R.id.cardEvidenceCard);
-        if (photoBase64 != null && !photoBase64.isEmpty() && ivEvidencePhoto != null) {
+    private void loadEvidencePhotoAsync(String reference) {
+        final ImageView ivEvidencePhoto = findViewById(R.id.ivEvidencePhoto);
+        final View cardEvidenceCard = findViewById(R.id.cardEvidenceCard);
+
+        if (ivEvidencePhoto != null) ivEvidencePhoto.setVisibility(View.GONE);
+        if (cardEvidenceCard != null) cardEvidenceCard.setVisibility(View.GONE);
+
+        if (reference == null || reference.trim().isEmpty()) return;
+
+        new Thread(() -> {
             try {
-                byte[] decodedBytes = Base64.decode(photoBase64, Base64.DEFAULT);
-                Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
-                ivEvidencePhoto.setImageBitmap(bitmap);
-                ivEvidencePhoto.setVisibility(View.VISIBLE);
-                if (cardEvidenceCard != null) cardEvidenceCard.setVisibility(View.VISIBLE);
-            } catch (Exception e) {
-                ivEvidencePhoto.setVisibility(View.GONE);
-                if (cardEvidenceCard != null) cardEvidenceCard.setVisibility(View.GONE);
-            }
-        } else {
-            if (ivEvidencePhoto != null) ivEvidencePhoto.setVisibility(View.GONE);
-            if (cardEvidenceCard != null) cardEvidenceCard.setVisibility(View.GONE);
-        }
+                String photoBase64 = "";
+                SessionManager sm = new SessionManager(this);
+                JSONArray reports = sm.getLocalReports();
+                for (int i = 0; i < reports.length(); i++) {
+                    JSONObject rep = reports.getJSONObject(i);
+                    if (rep.optString("incident_reference", "").equals(reference)) {
+                        photoBase64 = rep.optString("photo_base64", "");
+                        break;
+                    }
+                }
+
+                if (photoBase64.isEmpty()) {
+                    JSONArray globalReports = ValenciaGlobalIncidentStore.getReports();
+                    for (int i = 0; i < globalReports.length(); i++) {
+                        JSONObject rep = globalReports.getJSONObject(i);
+                        if (rep.optString("incident_reference", "").equals(reference)) {
+                            photoBase64 = rep.optString("photo_base64", "");
+                            break;
+                        }
+                    }
+                }
+
+                if (!photoBase64.isEmpty()) {
+                    byte[] decodedBytes = Base64.decode(photoBase64, Base64.DEFAULT | Base64.NO_WRAP);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+                    if (bitmap != null) {
+                        runOnUiThread(() -> {
+                            if (ivEvidencePhoto != null) {
+                                ivEvidencePhoto.setImageBitmap(bitmap);
+                                ivEvidencePhoto.setVisibility(View.VISIBLE);
+                            }
+                            if (cardEvidenceCard != null) {
+                                cardEvidenceCard.setVisibility(View.VISIBLE);
+                            }
+                        });
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void updateSequentialTimeline(String status) {

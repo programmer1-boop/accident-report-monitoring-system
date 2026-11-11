@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/arms_background"
+    android:background="#F8FAFC"
     android:clipToPadding="false"
     android:fillViewport="true"
     android:paddingBottom="24dp">
@@ -32,14 +32,15 @@
 
         <!-- 1. CDRRMO Individual Card with Copy Icon -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCdrrmo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/arms_card_bg"
             app:cardCornerRadius="16dp"
-            app:cardElevation="3dp"
-            app:strokeColor="#FFCDD2"
-            app:strokeWidth="1dp">
+            app:cardElevation="2dp"
+            app:strokeColor="#203F65"
+            app:strokeWidth="1.5dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -56,7 +57,7 @@
                     android:contentDescription="@string/app_name"
                     android:padding="8dp"
                     android:src="@drawable/ic_alert"
-                    app:tint="@color/arms_white" />
+                    app:tint="#64748B" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -95,20 +96,21 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Copy Hotline"
                     android:src="@drawable/ic_content_copy"
-                    app:tint="@color/arms_navy" />
+                    app:tint="#64748B" />
             </RelativeLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- 2. BFP Individual Card with Copy Icon -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardBfp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             app:cardBackgroundColor="@color/arms_card_bg"
             app:cardCornerRadius="16dp"
-            app:cardElevation="3dp"
-            app:strokeColor="#FFCDD2"
-            app:strokeWidth="1dp">
+            app:cardElevation="2dp"
+            app:strokeColor="#203F65"
+            app:strokeWidth="1.5dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -125,7 +127,7 @@
                     android:contentDescription="@string/app_name"
                     android:padding="8dp"
                     android:src="@drawable/ic_camera"
-                    app:tint="@color/arms_white" />
+                    app:tint="#64748B" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -164,20 +166,21 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Copy Hotline"
                     android:src="@drawable/ic_content_copy"
-                    app:tint="@color/arms_navy" />
+                    app:tint="#64748B" />
             </RelativeLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- 3. PNP Individual Card with Copy Icon -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPnp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             app:cardBackgroundColor="@color/arms_card_bg"
             app:cardCornerRadius="16dp"
-            app:cardElevation="3dp"
-            app:strokeColor="#FFCDD2"
-            app:strokeWidth="1dp">
+            app:cardElevation="2dp"
+            app:strokeColor="#203F65"
+            app:strokeWidth="1.5dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -194,7 +197,7 @@
                     android:contentDescription="@string/app_name"
                     android:padding="8dp"
                     android:src="@drawable/ic_shield"
-                    app:tint="@color/arms_white" />
+                    app:tint="#64748B" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -233,20 +236,22 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Copy Hotline"
                     android:src="@drawable/ic_content_copy"
-                    app:tint="@color/arms_navy" />
+                    app:tint="#64748B" />
             </RelativeLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- 4. Medical / City Hospital Individual Card with Copy Icon -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardMed"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:layout_marginBottom="16dp"
             app:cardBackgroundColor="@color/arms_card_bg"
             app:cardCornerRadius="16dp"
-            app:cardElevation="3dp"
-            app:strokeColor="#FFCDD2"
-            app:strokeWidth="1dp">
+            app:cardElevation="2dp"
+            app:strokeColor="#203F65"
+            app:strokeWidth="1.5dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -262,8 +267,8 @@
                     android:background="@drawable/shutter_inner_circle"
                     android:contentDescription="@string/app_name"
                     android:padding="8dp"
-                    android:src="@drawable/ic_user"
-                    app:tint="@color/arms_white" />
+                    android:src="@drawable/ic_reports"
+                    app:tint="#64748B" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -277,7 +282,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="City Hospital / Medical Unit"
+                        android:text="HEMS / City Health Office"
                         android:textColor="@color/arms_navy"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -302,26 +307,25 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Copy Hotline"
                     android:src="@drawable/ic_content_copy"
-                    app:tint="@color/arms_navy" />
+                    app:tint="#64748B" />
             </RelativeLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Recent Reports Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Recent Reports (Last 7 Days)"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:text="Recent Emergency Reports"
             android:textColor="@color/arms_navy"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <LinearLayout
             android:id="@+id/containerHomeRecentReports"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="4dp" />
+            android:orientation="vertical" />
 
     </LinearLayout>
 </ScrollView>

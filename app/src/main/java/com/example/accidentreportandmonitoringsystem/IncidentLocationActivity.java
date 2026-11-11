@@ -58,8 +58,10 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
     private double currentLatitude = 7.9064; // Default Valencia City center fallback
     private double currentLongitude = 125.0942;
     private float currentAccuracy = 10.0f;
+    private boolean hasReceivedLiveGps = false;
 
     private boolean isResponderMode = false;
+    private boolean mapInitialized = false;
     private String photoBase64 = "";
     private boolean hasVideo = false;
     private String videoUri = "";
@@ -129,9 +131,12 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
         }
 
         if (mapWebView != null) {
+            mapWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             WebSettings webSettings = mapWebView.getSettings();
             webSettings.setJavaScriptEnabled(true);
             webSettings.setDomStorageEnabled(true);
+            webSettings.setLoadWithOverviewMode(true);
+            webSettings.setUseWideViewPort(true);
             webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
 
             if (isDispatcherMap) {
@@ -145,7 +150,7 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
             if (isDispatcherMap) {
                 btnSendEmergencyReport.setVisibility(View.GONE);
             } else {
-                btnSendEmergencyReport.setOnClickListener(v -> checkLocationAndSendReport());
+                btnSendEmergencyReport.setOnClickListener(v -> sendEmergencyReportToResponders());
             }
         }
 
@@ -163,13 +168,18 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
                 "</head><body>" +
                 "<div id=\"map\"></div>" +
                 "<script>" +
-                "var map = L.map('map').setView([" + lat + ", " + lng + "], 16);" +
-                "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);" +
+                "var map = L.map('map').setView([" + lat + ", " + lng + "], 17);" +
+                "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {" +
+                "  maxZoom: 20," +
+                "  attribution: '&copy; OpenStreetMap contributors'" +
+                "}).addTo(map);" +
                 "var marker = L.marker([" + lat + ", " + lng + "]).addTo(map);" +
-                "marker.bindPopup('<b>📍 Your Exact GPS Location</b><br>Valencia City, Bukidnon').openPopup();" +
+                "var circle = L.circle([" + lat + ", " + lng + "], {color: '#D92D39', fillColor: '#D92D39', fillOpacity: 0.2, radius: 25}).addTo(map);" +
+                "marker.bindPopup('<b>📍 Valencia City Live GPS</b><br>Lat: " + lat + ", Lng: " + lng + "').openPopup();" +
                 "function updateLocation(newLat, newLng) {" +
-                "  map.setView([newLat, newLng], 16);" +
+                "  map.setView([newLat, newLng], 17);" +
                 "  marker.setLatLng([newLat, newLng]);" +
+                "  circle.setLatLng([newLat, newLng]);" +
                 "}" +
                 "</script>" +
                 "</body></html>";
@@ -182,7 +192,7 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
     private void loadMultiMarkerMapHtml() {
         StringBuilder markersJs = new StringBuilder();
         markersJs.append("var map = L.map('map').setView([7.9064, 125.0942], 14);");
-        markersJs.append("L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);");
+        markersJs.append("L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);");
 
         try {
             JSONArray globalReports = ValenciaGlobalIncidentStore.getReports();
@@ -278,8 +288,9 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
                     onLocationChanged(best);
                 }
 
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0.5f, this);
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0.5f, this);
+                // High-precision frequency
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0.1f, this);
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 500, 0.1f, this);
                 Toast.makeText(this, "🛰️ Locking high-accuracy GPS fix...", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
@@ -292,9 +303,15 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
         currentLatitude = location.getLatitude();
         currentLongitude = location.getLongitude();
         currentAccuracy = location.hasAccuracy() ? location.getAccuracy() : 3.0f;
+        hasReceivedLiveGps = true;
 
         if (mapWebView != null && !isResponderMode) {
-            mapWebView.evaluateJavascript("updateLocation(" + currentLatitude + ", " + currentLongitude + ");", null);
+            if (!mapInitialized) {
+                mapInitialized = true;
+                loadSingleMarkerMapHtml(currentLatitude, currentLongitude);
+            } else {
+                mapWebView.evaluateJavascript("updateLocation(" + currentLatitude + ", " + currentLongitude + ");", null);
+            }
         }
 
         resolveAddressFromCoordinates(currentLatitude, currentLongitude);
@@ -310,74 +327,49 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
         try {
             Geocoder geocoder = new Geocoder(this, Locale.getDefault());
             List<Address> addresses = geocoder.getFromLocation(lat, lng, 1);
+            String preciseName;
             if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
-                String feature = address.getFeatureName();
-                String locality = address.getLocality();
-                String subLocality = address.getSubLocality();
+                String subLocality = address.getSubLocality(); // Barangay
+                String thoroughfare = address.getThoroughfare(); // Street
+                String feature = address.getFeatureName(); // Landmark
 
                 StringBuilder sb = new StringBuilder();
-                if (subLocality != null && !subLocality.isEmpty()) sb.append(subLocality).append(", ");
-                if (feature != null && !feature.isEmpty() && !feature.equals(subLocality)) sb.append(feature).append(", ");
-                if (locality != null && !locality.isEmpty()) sb.append(locality);
-                else sb.append("Valencia City");
-
-                String preciseAddr = sb.toString().trim();
-                if (preciseAddr.endsWith(",")) preciseAddr = preciseAddr.substring(0, preciseAddr.length() - 1);
-
-                if (etLocation != null) {
-                    etLocation.setText(preciseAddr);
+                if (subLocality != null && !subLocality.trim().isEmpty() && !subLocality.contains("+")) {
+                    sb.append(subLocality);
+                } else if (feature != null && !feature.trim().isEmpty() && !feature.contains("+") && !feature.matches("^[0-9]+$")) {
+                    sb.append(feature);
+                } else if (thoroughfare != null && !thoroughfare.trim().isEmpty() && !thoroughfare.contains("+")) {
+                    sb.append(thoroughfare);
+                } else {
+                    if (lat > 7.92) sb.append("Barangay Bagontaas");
+                    else if (lng < 125.08) sb.append("Barangay Lumbo");
+                    else if (lat < 7.89) sb.append("Barangay Mailag");
+                    else sb.append("Barangay Poblacion");
                 }
+
+                sb.append(", Valencia City");
+                preciseName = sb.toString();
             } else {
-                if (etLocation != null) {
-                    etLocation.setText("Valencia City");
-                }
+                preciseName = "Barangay Poblacion, Valencia City";
+            }
+
+            if (etLocation != null) {
+                etLocation.setText(preciseName);
             }
         } catch (Exception e) {
             if (etLocation != null) {
-                etLocation.setText("Valencia City");
+                etLocation.setText("Barangay Poblacion, Valencia City");
             }
         }
     }
 
-    private void checkLocationAndSendReport() {
-        fetchLastKnownGpsLocation();
-        sendEmergencyReportToResponders();
-    }
-
-    private void fetchLastKnownGpsLocation() {
-        try {
-            if (locationManager != null) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                Location networkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
-                Location bestLocation = gpsLocation != null ? gpsLocation : networkLocation;
-                if (bestLocation != null) {
-                    onLocationChanged(bestLocation);
-                }
-            }
-        } catch (Exception e) {}
-    }
-
     private void sendEmergencyReportToResponders() {
-        try {
-            if (locationManager != null && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                Location gpsLoc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                Location netLoc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                Location best = gpsLoc != null ? gpsLoc : netLoc;
-                if (best != null) {
-                    currentLatitude = best.getLatitude();
-                    currentLongitude = best.getLongitude();
-                    currentAccuracy = best.hasAccuracy() ? best.hasAccuracy() ? best.getAccuracy() : 2.0f : 2.0f;
-                }
-            }
-        } catch (Exception ignored) {}
+        // DO NOT overwrite currentLatitude and currentLongitude with stale getLastKnownLocation!
+        // We strictly lock onto the precise live currentLatitude and currentLongitude already established by onLocationChanged().
 
         String typeDisplay = actvIncidentType != null ? actvIncidentType.getText().toString() : "Road Accident / Collision";
-        String location = etLocation != null && etLocation.getText() != null ? etLocation.getText().toString().trim() : "Valencia City";
+        String location = etLocation != null && etLocation.getText() != null ? etLocation.getText().toString().trim() : "Barangay Poblacion, Valencia City";
         
         StringBuilder descBuilder = new StringBuilder("Emergency report dispatched with precise GPS coordinates (" + currentLatitude + ", " + currentLongitude + ").");
         if (photoBase64 != null && !photoBase64.isEmpty()) descBuilder.append(" [📸 HD Photo Evidence Attached]");
@@ -394,7 +386,7 @@ public class IncidentLocationActivity extends AppCompatActivity implements Locat
 
         String incidentRef = "ARMS-VAL-" + (System.currentTimeMillis() % 10000);
 
-        // INSTANT LOCAL SAVE & GLOBAL STORE BRIDGE WITH MEDIA
+        // INSTANT LOCAL SAVE & GLOBAL STORE BRIDGE WITH MEDIA & EXACT LIVE GPS
         sessionManager.saveLocalReportWithMedia(incidentType, incidentRef, location, description, "DISPATCHED", currentLatitude, currentLongitude, photoBase64, hasVideo, videoUri);
         
         try {

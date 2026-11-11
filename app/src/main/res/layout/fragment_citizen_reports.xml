@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/arms_background"
+    android:background="#F8FAFC"
     android:clipToPadding="false"
     android:fillViewport="true"
     android:paddingBottom="24dp">
@@ -11,68 +11,134 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- 1. Top Header Banner with Shadow & Border (Same as Home Header) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="My Incident Reports"
-            android:textColor="@color/arms_navy"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/arms_card_bg"
+            app:cardCornerRadius="0dp"
+            app:cardElevation="3dp"
+            app:strokeColor="#E2E8F0"
+            app:strokeWidth="1dp">
 
-        <!-- Filter Tabs (All, Active, Resolved) with IDs for interactivity -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="14dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="My Reports"
+                            android:textColor="@color/arms_navy"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:text="Monitor real-time status of your dispatches."
+                            android:textColor="@color/arms_secondary_text"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </RelativeLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_location_row"
-            android:orientation="horizontal"
-            android:padding="4dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp">
 
-            <TextView
-                android:id="@+id/tabAll"
-                android:layout_width="0dp"
-                android:layout_height="38dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_primary_button"
-                android:gravity="center"
-                android:text="All"
-                android:textColor="@color/arms_white"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+            <!-- 2. Filter Tabs Card with Shadow & Border -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/arms_card_bg"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#E2E8F0"
+                app:strokeWidth="1dp">
 
-            <TextView
-                android:id="@+id/tabActive"
-                android:layout_width="0dp"
-                android:layout_height="38dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="Active"
-                android:textColor="@color/arms_secondary_text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-            <TextView
-                android:id="@+id/tabResolved"
-                android:layout_width="0dp"
-                android:layout_height="38dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="Resolved"
-                android:textColor="@color/arms_secondary_text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                    <!-- Filter Tabs (All, Active, Resolved) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_location_row"
+                        android:orientation="horizontal"
+                        android:padding="4dp">
+
+                        <TextView
+                            android:id="@+id/tabAll"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_primary_button"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="All"
+                            android:textColor="@color/arms_white"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tabActive"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="Active"
+                            android:textColor="@color/arms_secondary_text"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tabResolved"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:text="Resolved"
+                            android:textColor="@color/arms_secondary_text"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3. Container for Personal Reports Content -->
+            <LinearLayout
+                android:id="@+id/containerReports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+            </LinearLayout>
         </LinearLayout>
-
-        <!-- Reports List Container (Accurate real user data only) -->
-        <LinearLayout
-            android:id="@+id/containerReports"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="vertical" />
 
     </LinearLayout>
 </ScrollView>

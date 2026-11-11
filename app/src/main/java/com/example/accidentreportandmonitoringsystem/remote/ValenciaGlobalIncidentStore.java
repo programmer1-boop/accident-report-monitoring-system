@@ -8,6 +8,12 @@ public class ValenciaGlobalIncidentStore {
     private static final JSONArray resolvedHistory = new JSONArray();
     private static final JSONArray globalNotifications = new JSONArray();
 
+    public static synchronized void clearAll() {
+        while (globalReports.length() > 0) globalReports.remove(0);
+        while (resolvedHistory.length() > 0) resolvedHistory.remove(0);
+        while (globalNotifications.length() > 0) globalNotifications.remove(0);
+    }
+
     public static synchronized void addReport(JSONObject report) {
         try {
             String ref = report.optString("incident_reference", "");

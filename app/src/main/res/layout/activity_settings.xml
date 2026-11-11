@@ -33,7 +33,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:text="Settings"
+                android:text="Settings &amp; Support"
                 android:textColor="@color/arms_navy"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -97,6 +97,42 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- About ARMS Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAboutArms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/arms_card_bg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="About ARMS"
+                    android:textColor="@color/arms_navy"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Accident Report &amp; Monitoring System v1.0.0 — Valencia City"
+                    android:textColor="@color/arms_secondary_text"
+                    android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

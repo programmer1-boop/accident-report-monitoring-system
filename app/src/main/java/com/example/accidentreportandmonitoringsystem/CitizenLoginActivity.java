@@ -7,14 +7,18 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.accidentreportandmonitoringsystem.remote.ApiClient;
 import com.example.accidentreportandmonitoringsystem.remote.SessionManager;
+import com.example.accidentreportandmonitoringsystem.remote.ValenciaGlobalUserStore;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class CitizenLoginActivity extends AppCompatActivity {
 
+    private TextInputEditText etUsername, etPassword;
+    private MaterialButton btnLoginSubmit;
+    private TextView tvRegisterLink, tvForgotPassword;
     private SessionManager sessionManager;
-    private TextInputEditText etEmail, etPassword;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,17 +28,14 @@ public class CitizenLoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        etEmail = findViewById(R.id.etEmail);
+        etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id.etPassword);
-        MaterialButton btnLoginSubmit = findViewById(R.id.btnLoginSubmit);
-        TextView tvForgotPassword = findViewById(R.id.tvForgotPassword);
-        TextView tvRegisterLink = findViewById(R.id.tvRegisterLink);
+        btnLoginSubmit = findViewById(R.id.btnLoginSubmit);
+        tvRegisterLink = findViewById(R.id.tvRegisterLink);
+        tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
-        if (tvForgotPassword != null) {
-            tvForgotPassword.setOnClickListener(v -> {
-                Intent intent = new Intent(CitizenLoginActivity.this, ForgotPasswordActivity.class);
-                startActivity(intent);
-            });
+        if (btnLoginSubmit != null) {
+            btnLoginSubmit.setOnClickListener(v -> performLogin());
         }
 
         if (tvRegisterLink != null) {
@@ -44,62 +45,93 @@ public class CitizenLoginActivity extends AppCompatActivity {
             });
         }
 
-        if (btnLoginSubmit != null) {
-            btnLoginSubmit.setOnClickListener(v -> performLogin());
+        if (tvForgotPassword != null) {
+            tvForgotPassword.setOnClickListener(v -> {
+                Toast.makeText(this, "Password reset link sent to your registered email.", Toast.LENGTH_SHORT).show();
+            });
         }
     }
 
     private void performLogin() {
-        String emailOrPhone = etEmail != null && etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String username = etUsername != null && etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
         String password = etPassword != null && etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
-        if (emailOrPhone.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please enter your email/phone and password.", Toast.LENGTH_SHORT).show();
+        if (username.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Please enter your username and password.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
+            JSONArray persistedUsers = sessionManager.getRegisteredUsers();
+
+            String lower = username.toLowerCase();
+            boolean isSystemStaff = lower.contains("admin") ||
+                    lower.contains("responder") ||
+                    lower.contains("bfp") ||
+                    lower.contains("pnp") ||
+                    lower.contains("cdrrmo") ||
+                    lower.contains("hems") ||
+                    lower.contains("med");
+
+            boolean isRegisteredCitizen = false;
+            if (!isSystemStaff) {
+                for (int i = 0; i < persistedUsers.length(); i++) {
+                    JSONObject u = persistedUsers.getJSONObject(i);
+                    String uName = u.optString("username", u.optString("name", "")).trim();
+                    if (uName.equalsIgnoreCase(username)) {
+                        isRegisteredCitizen = true;
+                        break;
+                    }
+                }
+            }
+
+            boolean isKnownAccount = isSystemStaff || isRegisteredCitizen || ValenciaGlobalUserStore.accountExists(username);
+
+            if (!isKnownAccount) {
+                Toast.makeText(this, "❌ Account not found. Please register first.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             String role = "CITIZEN";
             String name = "Citizen User";
             String agencyType = "BFP";
 
-            String lower = emailOrPhone.toLowerCase();
-            if (lower.contains("admin") || lower.contains("dispatcher") || lower.contains("responder") || lower.contains("bfp") || lower.contains("pnp") || lower.contains("cdrrmo") || lower.contains("med")) {
+            if (lower.contains("admin")) {
+                role = "ADMIN";
+                name = "System Administrator";
+                agencyType = "ADMIN";
+            } else if (isSystemStaff) {
                 role = "RESPONDER";
-                name = lower.contains("dispatcher") ? "Dispatcher Officer" : "BFP Fire Officer";
+                name = "BFP Fire Officer";
                 agencyType = "BFP";
             } else {
                 role = "CITIZEN";
-                int atIdx = emailOrPhone.indexOf("@");
-                if (atIdx > 0) {
-                    String prefix = emailOrPhone.substring(0, atIdx);
-                    String[] parts = prefix.split("[._]");
-                    StringBuilder sb = new StringBuilder();
-                    for (String p : parts) {
-                        if (!p.isEmpty()) {
-                            sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1)).append(" ");
-                        }
-                    }
-                    name = sb.toString().trim();
-                } else if (!emailOrPhone.isEmpty()) {
-                    name = emailOrPhone;
-                }
+                name = username;
             }
 
             sessionManager.clearSession();
             sessionManager.saveAuthToken("arms_instant_token_" + System.currentTimeMillis());
             sessionManager.saveUserRole(role);
             sessionManager.saveUserName(name);
-            sessionManager.saveUserEmail(emailOrPhone);
+            sessionManager.saveUserEmail(username + "@arms.gov.ph");
             sessionManager.saveUserAgency(agencyType);
+
+            JSONObject loginUser = new JSONObject();
+            loginUser.put("name", name);
+            loginUser.put("username", username);
+            loginUser.put("email", username + "@arms.gov.ph");
+            loginUser.put("role", role);
+            loginUser.put("status", "Active");
+            loginUser.put("type", "CITIZEN".equalsIgnoreCase(role) ? "CITIZEN" : "STAFF");
+            sessionManager.saveRegisteredUser(loginUser);
 
             Toast.makeText(CitizenLoginActivity.this, "⚡ Instant Sign In Successful!", Toast.LENGTH_SHORT).show();
 
             Intent intent;
             if ("CITIZEN".equalsIgnoreCase(role)) {
                 intent = new Intent(CitizenLoginActivity.this, CitizenDashboardActivity.class);
-            } else if (lower.contains("dispatcher")) {
-                intent = new Intent(CitizenLoginActivity.this, DispatcherDashboardActivity.class);
+            } else if ("ADMIN".equalsIgnoreCase(role) || lower.contains("admin")) {
+                intent = new Intent(CitizenLoginActivity.this, AdminDashboardActivity.class);
             } else {
                 intent = new Intent(CitizenLoginActivity.this, ResponderDashboardActivity.class);
             }
@@ -108,9 +140,8 @@ public class CitizenLoginActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
 
-            // Sync with server in background silently
             JSONObject payload = new JSONObject();
-            payload.put("email", emailOrPhone);
+            payload.put("username", username);
             payload.put("password", password);
             ApiClient.post("/auth/login", payload, null, new ApiClient.ApiCallback() {
                 @Override

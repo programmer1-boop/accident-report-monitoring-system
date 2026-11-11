@@ -46,141 +46,102 @@
             </intent-filter>
         </activity>
 
+        <!-- Admin Dashboard & Management Activities -->
+        <activity
+            android:name=".AdminDashboardActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".AdminCreateResponderActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Welcome / First-Choice Access Selection Screen -->
         <activity
             android:name=".WelcomeActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- In-App Camera Capture Activity (Guest Report Entry) -->
         <activity
             android:name=".CameraCaptureActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Guest Emergency Reporting Activity -->
         <activity
             android:name=".GuestReportActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity
-            android:name=".CitizenNotificationsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <!-- Step 3: Incident GPS Location PIN Activity -->
+        <!-- Incident Location & GPS Map Activity -->
         <activity
             android:name=".IncidentLocationActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Step 5: Guest Report Details & Submission Form -->
-        <activity
-            android:name=".GuestReportDetailsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <!-- Citizen Authentication Screens -->
+        <!-- Citizen Authentication Activities -->
         <activity
             android:name=".CitizenLoginActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".CitizenRegisterActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity
-            android:name=".ForgotPasswordActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <!-- Citizen Dashboard, Reports, Alerts & Profile -->
+        <!-- Citizen Dashboard & Report Details Activities -->
         <activity
             android:name=".CitizenDashboardActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".CitizenReportsActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".CitizenReportDetailsActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity
-            android:name=".CitizenAlertsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".CitizenProfileActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <!-- BFP Responder Portal (Exclusive Responder Portal) -->
+        <!-- Responder Dashboard Activities -->
         <activity
             android:name=".ResponderDashboardActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".BfpDashboardActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ResponderAssignedActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ResponderHistoryActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ResponderAlertsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".DispatcherDashboardActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".DispatcherMapActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".DispatcherReportReviewActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".DispatcherProfileActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".EditProfileActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".SettingsActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".HelpSupportActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize" />
 
     </application>

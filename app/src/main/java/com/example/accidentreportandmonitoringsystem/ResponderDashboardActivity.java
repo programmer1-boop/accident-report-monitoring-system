@@ -31,6 +31,7 @@ public class ResponderDashboardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.parseColor("#F8FAFC")));
         setContentView(R.layout.activity_bfp_dashboard);
 
         sessionManager = new SessionManager(this);

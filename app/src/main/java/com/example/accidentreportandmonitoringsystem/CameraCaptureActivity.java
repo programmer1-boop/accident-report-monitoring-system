@@ -3,8 +3,10 @@ package com.example.accidentreportandmonitoringsystem;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -12,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import java.io.ByteArrayOutputStream;
 
 public class CameraCaptureActivity extends AppCompatActivity {
 
@@ -26,9 +30,24 @@ public class CameraCaptureActivity extends AppCompatActivity {
         cameraLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == RESULT_OK) {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Toast.makeText(this, "📸 Media captured! Opening live GPS map...", Toast.LENGTH_SHORT).show();
+
+                    String photoBase64 = "";
+                    try {
+                        if (result.getData().getExtras() != null) {
+                            Object obj = result.getData().getExtras().get("data");
+                            if (obj instanceof Bitmap) {
+                                Bitmap bmp = (Bitmap) obj;
+                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                bmp.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                                photoBase64 = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT | Base64.NO_WRAP);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+
                     Intent intent = new Intent(CameraCaptureActivity.this, IncidentLocationActivity.class);
+                    intent.putExtra("photo_base64", photoBase64);
                     startActivity(intent);
                     finish();
                 } else {

@@ -3,7 +3,6 @@ package com.example.accidentreportandmonitoringsystem;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Patterns;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,8 +15,8 @@ import org.json.JSONObject;
 
 public class CitizenRegisterActivity extends AppCompatActivity {
 
-    private TextInputLayout tilFullName, tilEmail, tilPhone, tilPassword, tilConfirmPassword;
-    private TextInputEditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
+    private TextInputLayout tilFirstName, tilLastName, tilUsername, tilAddress, tilPassword, tilConfirmPassword;
+    private TextInputEditText etFirstName, etMiddleName, etLastName, etUsername, etAddress, etPassword, etConfirmPassword;
     private SessionManager sessionManager;
 
     @Override
@@ -27,15 +26,18 @@ public class CitizenRegisterActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        tilFullName = findViewById(R.id.tilFullName);
-        tilEmail = findViewById(R.id.tilEmail);
-        tilPhone = findViewById(R.id.tilPhone);
+        tilFirstName = findViewById(R.id.tilFirstName);
+        tilLastName = findViewById(R.id.tilLastName);
+        tilUsername = findViewById(R.id.tilUsername);
+        tilAddress = findViewById(R.id.tilAddress);
         tilPassword = findViewById(R.id.tilPassword);
         tilConfirmPassword = findViewById(R.id.tilConfirmPassword);
 
-        etFullName = findViewById(R.id.etFullName);
-        etEmail = findViewById(R.id.etEmail);
-        etPhone = findViewById(R.id.etPhone);
+        etFirstName = findViewById(R.id.etFirstName);
+        etMiddleName = findViewById(R.id.etMiddleName);
+        etLastName = findViewById(R.id.etLastName);
+        etUsername = findViewById(R.id.etUsername);
+        etAddress = findViewById(R.id.etAddress);
         etPassword = findViewById(R.id.etPassword);
         etConfirmPassword = findViewById(R.id.etConfirmPassword);
 
@@ -56,32 +58,40 @@ public class CitizenRegisterActivity extends AppCompatActivity {
     }
 
     private void validateAndRegister() {
-        if (tilFullName != null) tilFullName.setError(null);
-        if (tilEmail != null) tilEmail.setError(null);
-        if (tilPhone != null) tilPhone.setError(null);
+        if (tilFirstName != null) tilFirstName.setError(null);
+        if (tilLastName != null) tilLastName.setError(null);
+        if (tilUsername != null) tilUsername.setError(null);
+        if (tilAddress != null) tilAddress.setError(null);
         if (tilPassword != null) tilPassword.setError(null);
         if (tilConfirmPassword != null) tilConfirmPassword.setError(null);
 
-        String fullName = etFullName != null && etFullName.getText() != null ? etFullName.getText().toString().trim() : "";
-        String email = etEmail != null && etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        String phone = etPhone != null && etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
+        String firstName = etFirstName != null && etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
+        String middleName = etMiddleName != null && etMiddleName.getText() != null ? etMiddleName.getText().toString().trim() : "";
+        String lastName = etLastName != null && etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
+        String username = etUsername != null && etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String address = etAddress != null && etAddress.getText() != null ? etAddress.getText().toString().trim() : "";
         String password = etPassword != null && etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
         String confirmPassword = etConfirmPassword != null && etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString().trim() : "";
 
         boolean isValid = true;
 
-        if (TextUtils.isEmpty(fullName)) {
-            if (tilFullName != null) tilFullName.setError("Full name is required");
+        if (TextUtils.isEmpty(firstName)) {
+            if (tilFirstName != null) tilFirstName.setError("First name is required");
             isValid = false;
         }
 
-        if (TextUtils.isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            if (tilEmail != null) tilEmail.setError("Valid email address is required");
+        if (TextUtils.isEmpty(lastName)) {
+            if (tilLastName != null) tilLastName.setError("Last name is required");
             isValid = false;
         }
 
-        if (TextUtils.isEmpty(phone)) {
-            if (tilPhone != null) tilPhone.setError("Mobile number is required");
+        if (TextUtils.isEmpty(username)) {
+            if (tilUsername != null) tilUsername.setError("Username is required");
+            isValid = false;
+        }
+
+        if (TextUtils.isEmpty(address)) {
+            if (tilAddress != null) tilAddress.setError("Address is required");
             isValid = false;
         }
 
@@ -97,12 +107,12 @@ public class CitizenRegisterActivity extends AppCompatActivity {
 
         if (isValid) {
             try {
+                String fullName = firstName + (middleName.isEmpty() ? "" : " " + middleName) + " " + lastName;
+
                 JSONObject payload = new JSONObject();
                 payload.put("full_name", fullName);
-                payload.put("fullName", fullName);
-                payload.put("name", fullName);
-                payload.put("email", email);
-                payload.put("phone_number", phone);
+                payload.put("username", username);
+                payload.put("address", address);
                 payload.put("password", password);
 
                 Toast.makeText(this, "Submitting Registration to ARMS Backend...", Toast.LENGTH_SHORT).show();
@@ -112,21 +122,25 @@ public class CitizenRegisterActivity extends AppCompatActivity {
                     public void onSuccess(JSONObject response) {
                         try {
                             String token = response.optString("token");
-                            JSONObject user = response.optJSONObject("user");
-                            String name = user != null ? user.optString("full_name", fullName) : fullName;
-                            String userEmail = user != null ? user.optString("email", email) : email;
-                            String userPhone = user != null ? user.optString("phone_number", phone) : phone;
-
                             sessionManager.clearSession();
                             sessionManager.saveAuthToken(token);
                             sessionManager.saveUserRole("CITIZEN");
-                            sessionManager.saveUserName(name);
-                            sessionManager.saveUserEmail(userEmail);
-                            sessionManager.saveUserPhone(userPhone);
+                            sessionManager.saveUserName(fullName);
+                            sessionManager.saveUserEmail(username + "@arms.gov.ph");
 
-                            Toast.makeText(CitizenRegisterActivity.this, "Account Created Successfully!", Toast.LENGTH_SHORT).show();
+                            JSONObject regUser = new JSONObject();
+                            regUser.put("name", fullName);
+                            regUser.put("username", username);
+                            regUser.put("email", username + "@arms.gov.ph");
+                            regUser.put("password", password);
+                            regUser.put("role", "CITIZEN");
+                            regUser.put("status", "Active");
+                            regUser.put("type", "CITIZEN");
+                            sessionManager.saveRegisteredUser(regUser);
 
-                            Intent intent = new Intent(CitizenRegisterActivity.this, CitizenDashboardActivity.class);
+                            Toast.makeText(CitizenRegisterActivity.this, "✅ Account created successfully! Please sign in.", Toast.LENGTH_LONG).show();
+
+                            Intent intent = new Intent(CitizenRegisterActivity.this, CitizenLoginActivity.class);
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startActivity(intent);
                             finish();
@@ -137,18 +151,26 @@ public class CitizenRegisterActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(int statusCode, String errorMessage) {
-                        // Resilient Fallback for Signup if server offline
                         try {
                             sessionManager.clearSession();
                             sessionManager.saveAuthToken("arms_fallback_token_" + System.currentTimeMillis());
                             sessionManager.saveUserRole("CITIZEN");
                             sessionManager.saveUserName(fullName);
-                            sessionManager.saveUserEmail(email);
-                            sessionManager.saveUserPhone(phone);
+                            sessionManager.saveUserEmail(username + "@arms.gov.ph");
 
-                            Toast.makeText(CitizenRegisterActivity.this, "✅ Account created successfully!", Toast.LENGTH_SHORT).show();
+                            JSONObject regUser = new JSONObject();
+                            regUser.put("name", fullName);
+                            regUser.put("username", username);
+                            regUser.put("email", username + "@arms.gov.ph");
+                            regUser.put("password", password);
+                            regUser.put("role", "CITIZEN");
+                            regUser.put("status", "Active");
+                            regUser.put("type", "CITIZEN");
+                            sessionManager.saveRegisteredUser(regUser);
 
-                            Intent intent = new Intent(CitizenRegisterActivity.this, CitizenDashboardActivity.class);
+                            Toast.makeText(CitizenRegisterActivity.this, "✅ Account created successfully! Please sign in.", Toast.LENGTH_LONG).show();
+
+                            Intent intent = new Intent(CitizenRegisterActivity.this, CitizenLoginActivity.class);
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startActivity(intent);
                             finish();

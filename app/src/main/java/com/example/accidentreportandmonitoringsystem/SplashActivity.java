@@ -17,25 +17,29 @@ public class SplashActivity extends AppCompatActivity {
 
         SessionManager sessionManager = new SessionManager(this);
 
-        // Smart Persistent Routing: If logged in -> go straight to dashboard. If not -> WelcomeActivity.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent;
-            if (sessionManager.isLoggedIn()) {
-                String role = sessionManager.getUserRole();
-                String email = sessionManager.getUserEmail().toLowerCase();
-                if ("CITIZEN".equalsIgnoreCase(role)) {
-                    intent = new Intent(SplashActivity.this, CitizenDashboardActivity.class);
-                } else if (email.contains("dispatcher")) {
-                    intent = new Intent(SplashActivity.this, DispatcherDashboardActivity.class);
+            try {
+                Intent intent;
+                if (sessionManager.isLoggedIn()) {
+                    String role = sessionManager.getUserRole();
+                    String email = sessionManager.getUserEmail() != null ? sessionManager.getUserEmail().toLowerCase() : "";
+                    if ("ADMIN".equalsIgnoreCase(role) || email.contains("admin")) {
+                        intent = new Intent(SplashActivity.this, AdminDashboardActivity.class);
+                    } else if ("CITIZEN".equalsIgnoreCase(role)) {
+                        intent = new Intent(SplashActivity.this, CitizenDashboardActivity.class);
+                    } else {
+                        intent = new Intent(SplashActivity.this, ResponderDashboardActivity.class);
+                    }
                 } else {
-                    intent = new Intent(SplashActivity.this, ResponderDashboardActivity.class);
+                    intent = new Intent(SplashActivity.this, WelcomeActivity.class);
                 }
-            } else {
-                intent = new Intent(SplashActivity.this, WelcomeActivity.class);
+                startActivity(intent);
+                finish();
+            } catch (Exception e) {
+                Intent intent = new Intent(SplashActivity.this, WelcomeActivity.class);
+                startActivity(intent);
+                finish();
             }
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
-        }, 1800);
+        }, 1000);
     }
 }

@@ -1,11 +1,15 @@
 package com.example.accidentreportandmonitoringsystem.fragments;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -13,10 +17,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.accidentreportandmonitoringsystem.CitizenReportDetailsActivity;
 import com.example.accidentreportandmonitoringsystem.R;
-import com.example.accidentreportandmonitoringsystem.remote.ApiClient;
 import com.example.accidentreportandmonitoringsystem.remote.SessionManager;
+import com.example.accidentreportandmonitoringsystem.remote.ValenciaGlobalIncidentStore;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class CitizenReportsFragment extends Fragment {
 
@@ -25,6 +32,7 @@ public class CitizenReportsFragment extends Fragment {
     private TextView tabAll, tabActive, tabResolved;
     private JSONArray allReportsCache = new JSONArray();
     private String currentFilter = "ALL"; // ALL, ACTIVE, RESOLVED
+    private long lastClickTime = 0;
 
     @Nullable
     @Override
@@ -53,10 +61,37 @@ public class CitizenReportsFragment extends Fragment {
 
     private void loadAndDisplayReports() {
         try {
-            allReportsCache = sessionManager.getLocalReports();
+            JSONArray local = sessionManager.getLocalReports();
+            JSONArray global = ValenciaGlobalIncidentStore.getReports();
+
+            JSONArray merged = new JSONArray();
+            Set<String> seenRefs = new HashSet<>();
+
+            if (global != null) {
+                for (int i = 0; i < global.length(); i++) {
+                    JSONObject r = global.getJSONObject(i);
+                    String ref = r.optString("incident_reference", "");
+                    if (!ref.isEmpty() && !seenRefs.contains(ref)) {
+                        seenRefs.add(ref);
+                        merged.put(r);
+                    }
+                }
+            }
+            if (local != null) {
+                for (int i = 0; i < local.length(); i++) {
+                    JSONObject r = local.getJSONObject(i);
+                    String ref = r.optString("incident_reference", "");
+                    if (!ref.isEmpty() && !seenRefs.contains(ref)) {
+                        seenRefs.add(ref);
+                        merged.put(r);
+                    }
+                }
+            }
+
+            allReportsCache = merged;
             displayReports(allReportsCache, currentFilter);
         } catch (Exception e) {
-            allReportsCache = new JSONArray();
+            allReportsCache = sessionManager.getLocalReports();
             displayReports(allReportsCache, currentFilter);
         }
     }
@@ -146,6 +181,7 @@ public class CitizenReportsFragment extends Fragment {
                 String address = rep.optString("landmark_address", "Valencia City");
                 String desc = rep.optString("description", "");
                 String date = rep.optString("created_at", "");
+                String photoBase64 = rep.optString("photo_base64", "");
 
                 View cardView = LayoutInflater.from(requireContext()).inflate(R.layout.item_recent_report, containerReports, false);
 
@@ -153,6 +189,7 @@ public class CitizenReportsFragment extends Fragment {
                 TextView tvStatus = cardView.findViewById(R.id.tvReportStatus);
                 TextView tvType = cardView.findViewById(R.id.tvReportType);
                 TextView tvLocation = cardView.findViewById(R.id.tvReportLocation);
+                ImageView ivThumb = cardView.findViewById(R.id.ivReportThumb);
 
                 if (tvRef != null) tvRef.setText("#" + ref);
                 if (tvStatus != null) {
@@ -168,7 +205,20 @@ public class CitizenReportsFragment extends Fragment {
                 if (tvType != null) tvType.setText(type.replace("_", " "));
                 if (tvLocation != null) tvLocation.setText(address + " • " + date);
 
+                if (ivThumb != null && photoBase64 != null && !photoBase64.trim().isEmpty()) {
+                    try {
+                        byte[] decoded = Base64.decode(photoBase64, Base64.DEFAULT | Base64.NO_WRAP);
+                        Bitmap bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+                        if (bmp != null) {
+                            ivThumb.setImageBitmap(bmp);
+                        }
+                    } catch (Exception ignored) {}
+                }
+
                 cardView.setOnClickListener(v -> {
+                    if (System.currentTimeMillis() - lastClickTime < 1000) return;
+                    lastClickTime = System.currentTimeMillis();
+
                     Intent intent = new Intent(requireContext(), CitizenReportDetailsActivity.class);
                     intent.putExtra("incident_type", type);
                     intent.putExtra("incident_ref", ref);
