@@ -248,6 +248,24 @@ router.post('/teams', authenticateToken, requireRole('SUPER_ADMIN'), async (req,
 });
 
 /**
+ * GET /api/admin/users
+ * Retrieve all user profiles for Admin Users Management (Super Admin only)
+ */
+router.get('/users', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const usersResult = await db.query(
+      `SELECT id, full_name AS name, email, phone_number, role, account_status AS status, created_at
+       FROM profiles
+       ORDER BY created_at DESC`
+    );
+    return res.json({ users: usersResult.rows });
+  } catch (err) {
+    console.error('[ARMS Admin] Get Users Error:', err);
+    return res.status(500).json({ error: 'Internal server error while retrieving users' });
+  }
+});
+
+/**
  * GET /api/admin/audit-logs
  * Paginated system audit trail viewer (Super Admin only)
  */
