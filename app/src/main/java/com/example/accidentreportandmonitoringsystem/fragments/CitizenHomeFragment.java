@@ -38,8 +38,19 @@ public class CitizenHomeFragment extends Fragment {
         sessionManager = new SessionManager(requireContext());
         containerHomeRecentReports = view.findViewById(R.id.containerHomeRecentReports);
 
+        com.google.android.material.button.MaterialButton btnSosHold = view.findViewById(R.id.btnCitizenSosHold);
+        com.example.accidentreportandmonitoringsystem.utils.SosHoldHelper.attach(
+                requireContext(), btnSosHold, "HOLD 3s FOR INSTANT SOS"
+        );
+
+        View cardPendingSync = view.findViewById(R.id.cardPendingSyncBanner);
+        if (cardPendingSync != null) {
+            cardPendingSync.setOnClickListener(v -> checkAndSyncPendingReports(view));
+        }
+
         setupHotlineCopyButtons(view);
         loadRecentReportsInstantly();
+        checkAndSyncPendingReports(view);
 
         return view;
     }
@@ -48,6 +59,41 @@ public class CitizenHomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadRecentReportsInstantly();
+        if (getView() != null) {
+            checkAndSyncPendingReports(getView());
+        }
+    }
+
+    private void checkAndSyncPendingReports(View root) {
+        if (!isAdded() || root == null) return;
+        View cardBanner = root.findViewById(R.id.cardPendingSyncBanner);
+        TextView tvBanner = root.findViewById(R.id.tvPendingSyncBanner);
+        int count = sessionManager.getPendingSyncReports().length();
+        if (cardBanner != null && tvBanner != null) {
+            if (count > 0) {
+                tvBanner.setText("Pending upload: " + count + " offline report(s) waiting for signal (Tap to sync)");
+                cardBanner.setVisibility(View.VISIBLE);
+            } else {
+                cardBanner.setVisibility(View.GONE);
+            }
+        }
+        if (count > 0) {
+            com.example.accidentreportandmonitoringsystem.remote.OfflineReportSyncManager.syncPendingReports(
+                    requireContext(),
+                    remaining -> {
+                        if (!isAdded()) return;
+                        if (cardBanner != null && tvBanner != null) {
+                            if (remaining > 0) {
+                                tvBanner.setText("Pending upload: " + remaining + " offline report(s) waiting for signal (Tap to sync)");
+                                cardBanner.setVisibility(View.VISIBLE);
+                            } else {
+                                cardBanner.setVisibility(View.GONE);
+                                loadRecentReportsInstantly();
+                            }
+                        }
+                    }
+            );
+        }
     }
 
     private void setupHotlineCopyButtons(View view) {

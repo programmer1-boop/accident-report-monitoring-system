@@ -70,6 +70,18 @@
             android:textSize="11sp"
             android:textStyle="bold" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCardStartNavigation"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#1D4ED8"
+            android:text="Start Navigation"
+            android:textColor="@color/arms_white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:cornerRadius="10dp" />
+
         <!-- Expandable Content Container (Small/Hidden by default) -->
         <LinearLayout
             android:id="@+id/layoutExpandableDetails"

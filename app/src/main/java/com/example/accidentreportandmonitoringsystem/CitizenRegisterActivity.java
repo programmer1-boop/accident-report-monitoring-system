@@ -109,9 +109,11 @@ public class CitizenRegisterActivity extends AppCompatActivity {
             try {
                 String fullName = firstName + (middleName.isEmpty() ? "" : " " + middleName) + " " + lastName;
 
+                String emailValue = username.contains("@") ? username : username + "@arms.gov.ph";
                 JSONObject payload = new JSONObject();
                 payload.put("full_name", fullName);
                 payload.put("username", username);
+                payload.put("email", emailValue);
                 payload.put("address", address);
                 payload.put("password", password);
 

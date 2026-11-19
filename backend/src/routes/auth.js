@@ -207,4 +207,38 @@ router.post('/avatar', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/forgot-password
+ * Request a password reset audit record for an existing account.
+ */
+router.post('/forgot-password', async (req, res) => {
+  const identifier = req.body.email || req.body.username;
+  if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+    return res.status(400).json({ error: 'Email or username is required' });
+  }
+
+  const normalized = identifier.trim().toLowerCase();
+  try {
+    const userRes = await db.query(
+      `SELECT id, email FROM profiles WHERE LOWER(email) = $1 OR LOWER(email) = $2 LIMIT 1`,
+      [normalized, `${normalized}@arms.gov.ph`]
+    );
+
+    if (userRes.rows.length > 0) {
+      await db.query(
+        `INSERT INTO audit_logs (actor_profile_id, action, entity_type, entity_id, metadata)
+         VALUES ($1, 'PASSWORD_RESET_REQUESTED', 'PROFILE', $1, $2)`,
+        [userRes.rows[0].id, JSON.stringify({ email: userRes.rows[0].email })]
+      ).catch(() => {});
+    }
+
+    return res.json({
+      message: 'If an account matches that email/username, a password reset request has been logged.'
+    });
+  } catch (err) {
+    console.error('[ARMS Auth] Forgot Password Error:', err);
+    return res.status(500).json({ error: 'Internal server error during password reset request' });
+  }
+});
+
 module.exports = router;

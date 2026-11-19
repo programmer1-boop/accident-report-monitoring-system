@@ -26,6 +26,7 @@ public class SessionManager {
     private static final String KEY_HAS_READ_ALERTS = "has_read_alerts";
     private static final String KEY_ALERTS_HISTORY = "citizen_notifications_history";
     private static final String KEY_REGISTERED_USERS_JSON = "registered_users_json";
+    private static final String KEY_PENDING_SYNC_REPORTS = "pending_sync_reports_queue";
 
     private final Context context;
     private final SharedPreferences pref;
@@ -322,10 +323,74 @@ public class SessionManager {
         return getNotificationHistory();
     }
 
+    public void updateLocalReportSyncStatus(String ref, String syncStatus) {
+        try {
+            JSONArray reports = getLocalReports();
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < reports.length(); i++) {
+                JSONObject obj = reports.getJSONObject(i);
+                if (obj.optString("incident_reference").equals(ref)) {
+                    obj.put("sync_status", syncStatus);
+                }
+                updated.put(obj);
+            }
+            editor.putString(KEY_LOCAL_REPORTS, updated.toString());
+            editor.apply();
+        } catch (Exception ignored) {}
+    }
+
+    public void enqueuePendingSyncReport(String idempotencyKey, String ref, String endpoint, JSONObject payload, String authToken) {
+        try {
+            JSONArray queue = getPendingSyncReports();
+            for (int i = 0; i < queue.length(); i++) {
+                if (queue.getJSONObject(i).optString("idempotency_key", "").equals(idempotencyKey)) {
+                    return;
+                }
+            }
+            JSONObject item = new JSONObject();
+            item.put("idempotency_key", idempotencyKey);
+            item.put("incident_reference", ref);
+            item.put("endpoint", endpoint);
+            item.put("payload", payload);
+            item.put("auth_token", authToken != null ? authToken : "");
+            item.put("queued_at", System.currentTimeMillis());
+            queue.put(item);
+            editor.putString(KEY_PENDING_SYNC_REPORTS, queue.toString());
+            editor.apply();
+            updateLocalReportSyncStatus(ref, "PENDING_SYNC");
+        } catch (Exception ignored) {}
+    }
+
+    public JSONArray getPendingSyncReports() {
+        try {
+            String json = pref.getString(KEY_PENDING_SYNC_REPORTS, "[]");
+            return new JSONArray(json);
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    public void removePendingSyncReport(String idempotencyKey) {
+        try {
+            JSONArray queue = getPendingSyncReports();
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < queue.length(); i++) {
+                JSONObject obj = queue.getJSONObject(i);
+                if (!obj.optString("idempotency_key", "").equals(idempotencyKey)) {
+                    updated.put(obj);
+                }
+            }
+            editor.putString(KEY_PENDING_SYNC_REPORTS, updated.toString());
+            editor.apply();
+        } catch (Exception ignored) {}
+    }
+
     public void clearSession() {
         String registeredUsersJson = pref.getString(KEY_REGISTERED_USERS_JSON, "[]");
+        String pendingSyncJson = pref.getString(KEY_PENDING_SYNC_REPORTS, "[]");
         editor.clear();
         editor.putString(KEY_REGISTERED_USERS_JSON, registeredUsersJson);
+        editor.putString(KEY_PENDING_SYNC_REPORTS, pendingSyncJson);
         editor.apply();
     }
 }

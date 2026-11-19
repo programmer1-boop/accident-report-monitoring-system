@@ -4,8 +4,10 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.widget.ImageButton;
@@ -14,9 +16,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import com.google.android.material.button.MaterialButton;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 
 public class GuestReportActivity extends AppCompatActivity {
 
@@ -24,6 +29,7 @@ public class GuestReportActivity extends AppCompatActivity {
     private static final int CAMERA_VIDEO_REQUEST = 3002;
     private static final int CAMERA_PERMISSION_CODE = 1001;
     private boolean isVideoRequest = false;
+    private File currentPhotoFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +77,15 @@ public class GuestReportActivity extends AppCompatActivity {
     private void launchCameraIntent(boolean isVideo) {
         Intent intent = new Intent(isVideo ? MediaStore.ACTION_VIDEO_CAPTURE : MediaStore.ACTION_IMAGE_CAPTURE);
         try {
+            if (!isVideo) {
+                File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                currentPhotoFile = File.createTempFile("ARMS_EVIDENCE_", ".jpg", storageDir);
+                Uri photoURI = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", currentPhotoFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
             startActivityForResult(intent, isVideo ? CAMERA_VIDEO_REQUEST : CAMERA_PHOTO_REQUEST);
-        } catch (Exception e) {
+        } catch (IOException | SecurityException e) {
             Toast.makeText(this, "Camera error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
@@ -85,13 +98,28 @@ public class GuestReportActivity extends AppCompatActivity {
             String videoUriStr = "";
             boolean hasVideo = (requestCode == CAMERA_VIDEO_REQUEST);
 
+            if (!hasVideo && currentPhotoFile != null && currentPhotoFile.exists()) {
+                Bitmap fullBmp = BitmapFactory.decodeFile(currentPhotoFile.getAbsolutePath());
+                if (fullBmp != null) {
+                    int maxDim = 1024;
+                    int w = fullBmp.getWidth();
+                    int h = fullBmp.getHeight();
+                    if (w > maxDim || h > maxDim) {
+                        float scale = Math.min((float) maxDim / w, (float) maxDim / h);
+                        photoBitmap = Bitmap.createScaledBitmap(fullBmp, Math.round(w * scale), Math.round(h * scale), true);
+                    } else {
+                        photoBitmap = fullBmp;
+                    }
+                }
+            }
+
             if (data != null) {
                 Uri uri = data.getData();
                 if (uri != null && hasVideo) {
                     videoUriStr = uri.toString();
                 }
 
-                if (data.getExtras() != null) {
+                if (photoBitmap == null && data.getExtras() != null) {
                     Object obj = data.getExtras().get("data");
                     if (obj instanceof Bitmap) {
                         photoBitmap = (Bitmap) obj;

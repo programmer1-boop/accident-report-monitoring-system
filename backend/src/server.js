@@ -14,8 +14,16 @@ const { authenticateToken, requireRole } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const path = require('path');
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
+app.use('/uploads', express.static(uploadsDir));
 
 // API Routers
 app.use('/api/auth', authRouter);

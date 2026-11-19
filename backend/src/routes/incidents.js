@@ -1,9 +1,27 @@
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const db = require('../config/db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
+
+function saveBase64Media(base64Str, incidentRef) {
+  if (!base64Str || typeof base64Str !== 'string' || !base64Str.trim()) return null;
+  try {
+    const cleaned = base64Str.replace(/^data:image\/\w+;base64,/, '').trim();
+    const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const fileName = `${incidentRef}_${Date.now()}.jpg`;
+    fs.writeFileSync(path.join(uploadsDir, fileName), Buffer.from(cleaned, 'base64'));
+    return `/uploads/${fileName}`;
+  } catch (e) {
+    return null;
+  }
+}
 
 const ALLOWED_INCIDENT_TYPES = [
   'ROAD_ACCIDENT',
@@ -62,9 +80,11 @@ router.post('/guest', async (req, res) => {
   const tokenHash = hashToken(rawTrackingToken);
   const incidentRef = generateIncidentReference();
   const captureTime = captured_at ? new Date(captured_at) : new Date();
+  const savedPhotoUrl = saveBase64Media(req.body.photo_base64, incidentRef);
 
-  const client = await db.pool.connect();
+  let client;
   try {
+    client = await db.pool.connect();
     await client.query('BEGIN');
 
     const incidentResult = await client.query(
@@ -113,15 +133,25 @@ router.post('/guest', async (req, res) => {
       incident_reference: newIncident.incident_reference,
       incident_id: newIncident.id,
       tracking_token: rawTrackingToken,
+      photo_url: savedPhotoUrl,
       current_status: newIncident.current_status,
       submitted_at: newIncident.submitted_at
     });
   } catch (txErr) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('[ARMS API] Guest Incident Rollback Error:', rollbackErr);
+      }
+    }
     console.error('[ARMS API] Guest Incident Submission Error:', txErr);
+    if (!client) {
+      return res.status(503).json({ error: 'Database is unavailable. Please try again later.' });
+    }
     return res.status(500).json({ error: 'Internal server error while processing emergency report' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -355,6 +385,55 @@ router.post('/guest/link', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('[ARMS API] Link Guest Report Error:', err);
     return res.status(500).json({ error: 'Internal server error while linking report' });
+  }
+});
+
+/**
+ * GET /api/incidents/:ref/responder-location
+ * Retrieve latest responder GPS coordinates for an active incident
+ */
+router.get('/:ref/responder-location', async (req, res) => {
+  const ref = (req.params.ref || '').trim();
+  if (!ref) {
+    return res.status(400).json({ error: 'Incident reference is required' });
+  }
+
+  try {
+    const result = await db.query(
+      `SELECT incident_reference, agency_type, latitude, longitude, updated_at
+       FROM responder_live_locations
+       WHERE incident_reference = $1
+       LIMIT 1`,
+      [ref]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        incident_reference: ref,
+        live: false,
+        latitude: 7.9064,
+        longitude: 125.0942,
+        agency_type: 'CDRRMO'
+      });
+    }
+
+    const row = result.rows[0];
+    return res.json({
+      incident_reference: row.incident_reference,
+      live: true,
+      latitude: parseFloat(row.latitude),
+      longitude: parseFloat(row.longitude),
+      agency_type: row.agency_type || 'RESPONDER',
+      updated_at: row.updated_at
+    });
+  } catch (err) {
+    return res.json({
+      incident_reference: ref,
+      live: false,
+      latitude: 7.9064,
+      longitude: 125.0942,
+      agency_type: 'CDRRMO'
+    });
   }
 });
 

@@ -93,6 +93,25 @@ public class AdminCreateResponderActivity extends AppCompatActivity {
             officeAccount.put("type", "STAFF");
             ValenciaGlobalUserStore.addUser(officeAccount);
 
+            com.example.accidentreportandmonitoringsystem.remote.SessionManager sm =
+                    new com.example.accidentreportandmonitoringsystem.remote.SessionManager(this);
+            String token = sm.getAuthToken();
+            if (token != null && !token.startsWith("arms_instant_token_") && !token.startsWith("arms_fallback_token_")) {
+                JSONObject apiPayload = new JSONObject();
+                apiPayload.put("full_name", office);
+                apiPayload.put("email", email);
+                apiPayload.put("phone_number", phone);
+                apiPayload.put("role", "RESPONDER");
+                apiPayload.put("password", password);
+                com.example.accidentreportandmonitoringsystem.remote.ApiClient.post("/admin/provision-staff", apiPayload, token,
+                        new com.example.accidentreportandmonitoringsystem.remote.ApiClient.ApiCallback() {
+                            @Override
+                            public void onSuccess(JSONObject response) {}
+                            @Override
+                            public void onError(int statusCode, String errorMessage) {}
+                        });
+            }
+
             new AlertDialog.Builder(this)
                     .setTitle("✅ Office Account Created")
                     .setMessage("Official account for " + office + " has been successfully provisioned.")

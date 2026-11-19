@@ -113,11 +113,54 @@ public class AdminActivityFragment extends Fragment {
     }
 
     private void loadActivities() {
-        if (containerAdminActivityList == null) return;
+        if (containerAdminActivityList == null || !isAdded()) return;
+        String token = sessionManager.getAuthToken();
+        if (token != null && !token.startsWith("arms_instant_token_") && !token.startsWith("arms_fallback_token_")) {
+            com.example.accidentreportandmonitoringsystem.remote.ApiClient.get("/admin/audit-logs?limit=20", token,
+                    new com.example.accidentreportandmonitoringsystem.remote.ApiClient.ApiCallback() {
+                        @Override
+                        public void onSuccess(JSONObject response) {
+                            if (!isAdded()) return;
+                            renderActivities(response.optJSONArray("logs"));
+                        }
+
+                        @Override
+                        public void onError(int statusCode, String errorMessage) {
+                            if (!isAdded()) return;
+                            renderActivities(null);
+                        }
+                    });
+        } else {
+            renderActivities(null);
+        }
+    }
+
+    private void renderActivities(@Nullable JSONArray apiLogs) {
+        if (containerAdminActivityList == null || !isAdded()) return;
         containerAdminActivityList.removeAllViews();
 
         try {
             JSONArray activities = new JSONArray();
+
+            if (apiLogs != null) {
+                for (int i = 0; i < apiLogs.length(); i++) {
+                    JSONObject log = apiLogs.getJSONObject(i);
+                    String action = log.optString("action", "SYSTEM_EVENT");
+                    String actor = log.optString("actor_name", "System");
+                    String actorRole = log.optString("actor_role", "ADMIN");
+                    String entityType = log.optString("entity_type", "SYSTEM");
+                    String time = log.optString("created_at", "Today");
+                    activities.put(new JSONObject()
+                            .put("module", entityType)
+                            .put("action", action)
+                            .put("user", actor + " · " + actorRole)
+                            .put("time", time)
+                            .put("category", entityType.contains("PROFILE") ? "USER" : (entityType.contains("INCIDENT") ? "INCIDENT" : "SYSTEM"))
+                            .put("target", entityType)
+                            .put("ip", "Backend API")
+                            .put("desc", log.optString("metadata", "")));
+                }
+            }
 
             // Inject real citizen reports as incident activities
             JSONArray globalReports = ValenciaGlobalIncidentStore.getReports();

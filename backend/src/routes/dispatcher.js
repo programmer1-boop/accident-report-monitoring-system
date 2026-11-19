@@ -4,9 +4,21 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 /**
  * GET /api/dispatcher/queue
- * Active incident queue for Dispatchers and Super Admins.
+ * Active incident queue for Dispatchers and Super Admins (with nearby duplicate detection).
  */
 router.get('/queue', authenticateToken, requireRole('DISPATCHER', 'SUPER_ADMIN'), async (req, res) => {
   const page = parseInt(req.query.page || '1', 10);
@@ -15,24 +27,49 @@ router.get('/queue', authenticateToken, requireRole('DISPATCHER', 'SUPER_ADMIN')
 
   try {
     const countResult = await db.query(
-      `SELECT COUNT(*) FROM incidents WHERE current_status IN ('SUBMITTED', 'UNDER_REVIEW', 'VERIFIED', 'ASSIGNED')`
+      `SELECT COUNT(*) FROM incidents WHERE current_status IN ('SUBMITTED', 'UNDER_REVIEW', 'VERIFIED', 'ASSIGNED', 'DISPATCHED')`
     );
     const totalQueueItems = parseInt(countResult.rows[0].count, 10);
 
     const queueResult = await db.query(
       `SELECT id, incident_reference, incident_type, description, latitude, longitude, landmark_address, current_status, submitted_at, created_at
        FROM incidents
-       WHERE current_status IN ('SUBMITTED', 'UNDER_REVIEW', 'VERIFIED', 'ASSIGNED')
+       WHERE current_status IN ('SUBMITTED', 'UNDER_REVIEW', 'VERIFIED', 'ASSIGNED', 'DISPATCHED')
        ORDER BY created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
 
+    // Detect possible duplicates within 150 meters for same incident_type
+    const rows = queueResult.rows.map((row) => ({ ...row, possible_duplicate: false }));
+    for (let i = 0; i < rows.length; i++) {
+      const a = rows[i];
+      const latA = parseFloat(a.latitude);
+      const lngA = parseFloat(a.longitude);
+      if (isNaN(latA) || isNaN(lngA)) continue;
+
+      for (let j = i + 1; j < rows.length; j++) {
+        const b = rows[j];
+        if ((a.incident_type || '').toUpperCase() !== (b.incident_type || '').toUpperCase()) continue;
+        const latB = parseFloat(b.latitude);
+        const lngB = parseFloat(b.longitude);
+        if (isNaN(latB) || isNaN(lngB)) continue;
+
+        const dist = Math.round(haversineMeters(latA, lngA, latB, lngB));
+        if (dist <= 150) {
+          a.possible_duplicate = true;
+          a.duplicate_of_ref = b.incident_reference;
+          a.duplicate_distance_m = dist;
+          break;
+        }
+      }
+    }
+
     return res.json({
       page,
       limit,
       total: totalQueueItems,
-      queue: queueResult.rows
+      queue: rows
     });
   } catch (err) {
     console.error('[ARMS Dispatcher] Queue Retrieval Error:', err);

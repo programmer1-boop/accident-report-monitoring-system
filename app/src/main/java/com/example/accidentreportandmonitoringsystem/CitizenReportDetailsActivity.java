@@ -46,6 +46,53 @@ public class CitizenReportDetailsActivity extends AppCompatActivity {
         // Bind text details immediately on main thread for instant zero-lag response
         bindTextDetails(reference, incidentType, status, location, description);
 
+        // Wire Live Responder GPS Tracking button for Citizens
+        com.google.android.material.button.MaterialButton btnTrackResponder = findViewById(R.id.btnTrackLiveResponder);
+        if (btnTrackResponder != null) {
+            final String finalRef = reference;
+            final String finalType = incidentType;
+            final String finalLoc = location;
+            btnTrackResponder.setOnClickListener(v -> {
+                double lat = 7.9064;
+                double lng = 125.0942;
+                try {
+                    SessionManager sm = new SessionManager(this);
+                    JSONArray[] sources = new JSONArray[]{ValenciaGlobalIncidentStore.getReports(), sm.getLocalReports()};
+                    for (JSONArray arr : sources) {
+                        if (arr == null) continue;
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject rep = arr.optJSONObject(i);
+                            if (rep != null && finalRef.equals(rep.optString("incident_reference", ""))) {
+                                lat = rep.optDouble("latitude", 7.9064);
+                                lng = rep.optDouble("longitude", 125.0942);
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+
+                double responderLat = 7.9064;
+                double responderLng = 125.0942;
+                JSONObject liveLoc = ValenciaGlobalIncidentStore.getResponderLocation(finalRef);
+                if (liveLoc != null) {
+                    responderLat = liveLoc.optDouble("latitude", 7.9064);
+                    responderLng = liveLoc.optDouble("longitude", 125.0942);
+                }
+
+                android.content.Intent mapIntent = new android.content.Intent(this, IncidentLocationActivity.class);
+                mapIntent.putExtra("is_dispatcher_map", true);
+                mapIntent.putExtra("is_citizen_tracking", true);
+                mapIntent.putExtra("incident_lat", lat);
+                mapIntent.putExtra("incident_lng", lng);
+                mapIntent.putExtra("station_lat", responderLat);
+                mapIntent.putExtra("station_lng", responderLng);
+                mapIntent.putExtra("incident_ref", finalRef);
+                mapIntent.putExtra("incident_type", finalType);
+                mapIntent.putExtra("address", finalLoc);
+                startActivity(mapIntent);
+            });
+        }
+
         // Load photo evidence asynchronously on background thread
         loadEvidencePhotoAsync(reference);
     }

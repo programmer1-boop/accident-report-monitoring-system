@@ -7,6 +7,25 @@ public class ValenciaGlobalIncidentStore {
     private static final JSONArray globalReports = new JSONArray();
     private static final JSONArray resolvedHistory = new JSONArray();
     private static final JSONArray globalNotifications = new JSONArray();
+    private static final java.util.Map<String, JSONObject> responderLiveLocations = new java.util.HashMap<>();
+
+    public static synchronized void updateResponderLocation(String ref, double lat, double lng, String agency) {
+        if (ref == null || ref.trim().isEmpty()) return;
+        try {
+            JSONObject loc = new JSONObject();
+            loc.put("incident_reference", ref);
+            loc.put("latitude", lat);
+            loc.put("longitude", lng);
+            loc.put("agency_type", agency != null ? agency : "RESPONDER");
+            loc.put("updated_at", System.currentTimeMillis());
+            responderLiveLocations.put(ref, loc);
+        } catch (Exception ignored) {}
+    }
+
+    public static synchronized JSONObject getResponderLocation(String ref) {
+        if (ref == null) return null;
+        return responderLiveLocations.get(ref);
+    }
 
     public static synchronized void clearAll() {
         while (globalReports.length() > 0) globalReports.remove(0);

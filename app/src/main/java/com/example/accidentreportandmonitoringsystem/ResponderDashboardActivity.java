@@ -13,6 +13,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import com.example.accidentreportandmonitoringsystem.fragments.CitizenProfileFragment;
 import com.example.accidentreportandmonitoringsystem.fragments.ResponderAlertsFragment;
 import com.example.accidentreportandmonitoringsystem.fragments.ResponderHistoryFragment;
 import com.example.accidentreportandmonitoringsystem.fragments.ResponderHomeFragment;
@@ -27,6 +28,15 @@ public class ResponderDashboardActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private ImageButton ibResponderHeaderBell;
     private TextView tvResponderHeaderAlertBadge;
+    private final android.os.Handler pollHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private int lastKnownDispatchCount = -1;
+    private final Runnable pollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            pollLiveDispatches();
+            pollHandler.postDelayed(this, 15000);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +45,14 @@ public class ResponderDashboardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_bfp_dashboard);
 
         sessionManager = new SessionManager(this);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                androidx.core.app.ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1009);
+            }
+        }
 
         ibResponderHeaderBell = findViewById(R.id.ibResponderHeaderBell);
         tvResponderHeaderAlertBadge = findViewById(R.id.tvResponderHeaderAlertBadge);
@@ -60,8 +78,7 @@ public class ResponderDashboardActivity extends AppCompatActivity {
                     loadFragment(new ResponderAlertsFragment());
                     return true;
                 } else if (itemId == R.id.nav_profile) {
-                    Intent intent = new Intent(this, CitizenProfileActivity.class);
-                    startActivity(intent);
+                    loadFragment(new CitizenProfileFragment());
                     return true;
                 }
                 return false;
@@ -72,12 +89,46 @@ public class ResponderDashboardActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        BottomNavigationView bottomNavigation = findViewById(R.id.bottomNavigation);
-        if (bottomNavigation != null) {
-            bottomNavigation.setSelectedItemId(R.id.nav_home);
-        }
-        loadFragment(new ResponderHomeFragment());
         loadResponderHeaderBadge();
+        pollHandler.removeCallbacks(pollRunnable);
+        pollHandler.postDelayed(pollRunnable, 15000);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        pollHandler.removeCallbacks(pollRunnable);
+    }
+
+    private void pollLiveDispatches() {
+        String token = sessionManager.getAuthToken();
+        if (token == null || token.startsWith("arms_instant_token_") || token.startsWith("arms_fallback_token_")) {
+            return;
+        }
+        new com.example.accidentreportandmonitoringsystem.data.repository.IncidentRepository()
+                .getResponderDispatches(token, new com.example.accidentreportandmonitoringsystem.remote.ApiClient.ApiCallback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        JSONArray dispatches = response.optJSONArray("dispatches");
+                        int count = dispatches != null ? dispatches.length() : 0;
+                        if (lastKnownDispatchCount >= 0 && count > lastKnownDispatchCount) {
+                            com.example.accidentreportandmonitoringsystem.notifications.ArmsNotificationHelper
+                                    .showEmergencyNotification(
+                                            ResponderDashboardActivity.this,
+                                            "New Emergency Dispatch",
+                                            "You have " + count + " active assigned incident(s)."
+                                    );
+                        }
+                        lastKnownDispatchCount = count;
+                        if (tvResponderHeaderAlertBadge != null) {
+                            tvResponderHeaderAlertBadge.setText(String.valueOf(count));
+                            tvResponderHeaderAlertBadge.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+                        }
+                    }
+
+                    @Override
+                    public void onError(int statusCode, String errorMessage) {}
+                });
     }
 
     private void loadResponderHeaderBadge() {

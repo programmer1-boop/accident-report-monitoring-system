@@ -396,5 +396,15 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Track Live Responder Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTrackLiveResponder"
+            style="@style/Widget.ARMS.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="18dp"
+            android:text="Track Live Responder on GPS Map"
+            app:cornerRadius="14dp" />
+
     </LinearLayout>
 </ScrollView>

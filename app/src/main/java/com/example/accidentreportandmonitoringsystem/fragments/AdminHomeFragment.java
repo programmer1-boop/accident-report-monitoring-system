@@ -74,13 +74,13 @@ public class AdminHomeFragment extends Fragment {
 
         if (cardIncidentRecords != null) {
             cardIncidentRecords.setOnClickListener(v -> {
-                Toast.makeText(requireContext(), "📋 Opening All Incident Records...", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(requireContext(), com.example.accidentreportandmonitoringsystem.AdminIncidentRecordsActivity.class));
             });
         }
 
         if (cardAnalytics != null) {
             cardAnalytics.setOnClickListener(v -> {
-                Toast.makeText(requireContext(), "📊 Opening Reports & Analytics...", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(requireContext(), com.example.accidentreportandmonitoringsystem.AdminIncidentRecordsActivity.class));
             });
         }
 

@@ -73,7 +73,7 @@ public class AdminUsersFragment extends Fragment {
     }
 
     private void fetchBackendUsers() {
-        ApiClient.get("/admin/users", null, new ApiClient.ApiCallback() {
+        ApiClient.get("/admin/users", sessionManager.getAuthToken(), new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JSONObject response) {
                 try {

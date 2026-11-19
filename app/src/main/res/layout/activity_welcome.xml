@@ -60,6 +60,36 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+            <!-- Offline Pending Sync Banner (Shown when offline reports await upload) -->
+            <TextView
+                android:id="@+id/tvWelcomePendingSync"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="#FEF3C7"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:text="Pending offline reports awaiting sync (Tap to retry)"
+                android:textColor="#92400E"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Hold 3s Instant SOS Panic Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWelcomeSosHold"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:backgroundTint="#991B1B"
+                android:text="HOLD 3s FOR INSTANT SOS"
+                android:textColor="@color/arms_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:elevation="4dp" />
+
             <!-- Emergency Guest Report Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnContinueGuest"
@@ -72,6 +102,21 @@
                 android:textStyle="bold"
                 app:cornerRadius="16dp"
                 app:elevation="4dp" />
+
+            <!-- Track Guest Report Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTrackGuestReport"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="16dp"
+                android:text="Track Guest Report"
+                android:textColor="#38BDF8"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:cornerRadius="16dp"
+                app:strokeColor="#38BDF8"
+                app:strokeWidth="1.2dp" />
 
             <!-- Sign In Button (Glass / White Style) -->
             <com.google.android.material.button.MaterialButton

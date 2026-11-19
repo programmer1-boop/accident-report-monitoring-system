@@ -4,13 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/arms_background"
+    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- Top Bar -->
+    <!-- Top Bar (Hidden while active Turn-by-Turn Navigation Banner is shown) -->
     <RelativeLayout
+        android:id="@+id/rlMapTopBar"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:layout_marginTop="8dp"
         android:paddingHorizontal="16dp">
 
         <ImageButton
@@ -25,6 +26,7 @@
             app:tint="@color/arms_navy" />
 
         <TextView
+            android:id="@+id/tvMapTopTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
@@ -34,14 +36,224 @@
             android:textStyle="bold" />
     </RelativeLayout>
 
-    <!-- Interactive Live GPS Map View (OpenStreetMap / Leaflet via WebView - Zero API keys required!) -->
-    <WebView
-        android:id="@+id/mapWebView"
+    <!-- Google Maps-Style Active Turn-by-Turn Direction Banner -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardNavBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="#0F5132"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvNavTurnIcon"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="#198754"
+                android:gravity="center"
+                android:text="↑"
+                android:textColor="@color/arms_white"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvNavStepDistance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="250 m"
+                    android:textColor="#BBF7D0"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvNavInstruction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Head south on Sayre Highway"
+                    android:textColor="@color/arms_white"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvNavNextStep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Then: Continue toward accident location"
+                    android:textColor="#D1FAE5"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btnToggleNavVoice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="8dp"
+                android:text="🔊"
+                android:textSize="20sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Interactive Live GPS Map View (OpenStreetMap / Leaflet via WebView) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
 
-    <!-- Bottom Location & Dispatch Panel -->
+        <WebView
+            android:id="@+id/mapWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Floating Recenter & Demo Drive Controls (Visible during Navigation) -->
+        <LinearLayout
+            android:id="@+id/layoutMapNavControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="14dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRecenterNav"
+                style="@style/Widget.Material3.Button.ElevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginBottom="8dp"
+                android:backgroundTint="@color/arms_white"
+                android:text="Recenter"
+                android:textColor="@color/arms_navy"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSimulateNav"
+                style="@style/Widget.Material3.Button.ElevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:backgroundTint="#1D4ED8"
+                android:text="Preview Drive"
+                android:textColor="@color/arms_white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="20dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Google Maps-Style Navigation Bottom Sheet (Shown in Responder / Tracking Map Mode) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardNavPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/arms_card_bg"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="16dp"
+        app:strokeColor="@color/arms_divider"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvNavEta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Calculating route..."
+                        android:textColor="@color/arms_green"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvNavDistanceArrival"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="-- km • ETA --:--"
+                        android:textColor="@color/arms_secondary_text"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewAllSteps"
+                    style="@style/Widget.ARMS.Button.Secondary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    android:text="Steps"
+                    android:textSize="12sp"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvNavDestination"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Destination: Valencia City, Bukidnon, Philippines"
+                android:textColor="@color/arms_navy"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStartNavigation"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="#1D4ED8"
+                    android:text="Start Navigation"
+                    android:textColor="@color/arms_white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp"
+                    app:elevation="3dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bottom Location & Dispatch Panel (Shown in Citizen/Guest Reporting Mode) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardBottomPanel"
         android:layout_width="match_parent"

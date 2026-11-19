@@ -16,7 +16,7 @@ router.get('/dispatches', authenticateToken, requireRole('RESPONDER'), async (re
   try {
     // 1. Get responder's active team membership and office name
     const membershipResult = await db.query(
-      `SELECT m.responder_team_id, t.team_name, t.agency_type
+      `SELECT m.responder_team_id, t.team_name, t.team_type AS agency_type
        FROM responder_memberships m
        JOIN responder_teams t ON m.responder_team_id = t.id
        WHERE m.responder_profile_id = $1 AND m.is_active = TRUE`,
@@ -178,6 +178,59 @@ router.post('/status', authenticateToken, requireRole('RESPONDER'), async (req, 
     return res.status(500).json({ error: 'Internal server error while updating status' });
   } finally {
     client.release();
+  }
+});
+
+/**
+ * POST /api/responder/location
+ * Update live responder GPS telemetry for an active incident so Citizens & Dispatchers can track arrival
+ */
+router.post('/location', authenticateToken, requireRole('RESPONDER'), async (req, res) => {
+  const { incident_reference, latitude, longitude, agency_type } = req.body;
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  if (!incident_reference || isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({ error: 'incident_reference, latitude, and longitude are required' });
+  }
+
+  // Clamp strictly to Valencia City, Bukidnon, Philippines bounds
+  const safeLat = (lat >= 7.75 && lat <= 8.05) ? lat : 7.9064;
+  const safeLng = (lng >= 124.95 && lng <= 125.25) ? lng : 125.0942;
+
+  try {
+    await db.query(
+      `CREATE TABLE IF NOT EXISTS responder_live_locations (
+         incident_reference VARCHAR(100) PRIMARY KEY,
+         responder_id UUID,
+         agency_type VARCHAR(50),
+         latitude NUMERIC(10, 7) NOT NULL,
+         longitude NUMERIC(10, 7) NOT NULL,
+         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+       )`
+    );
+
+    await db.query(
+      `INSERT INTO responder_live_locations (incident_reference, responder_id, agency_type, latitude, longitude, updated_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+       ON CONFLICT (incident_reference)
+       DO UPDATE SET responder_id = EXCLUDED.responder_id,
+                     agency_type = EXCLUDED.agency_type,
+                     latitude = EXCLUDED.latitude,
+                     longitude = EXCLUDED.longitude,
+                     updated_at = CURRENT_TIMESTAMP`,
+      [incident_reference.trim(), req.user.id, agency_type || 'RESPONDER', safeLat, safeLng]
+    );
+
+    return res.json({
+      message: 'Responder live location updated',
+      incident_reference: incident_reference.trim(),
+      latitude: safeLat,
+      longitude: safeLng
+    });
+  } catch (err) {
+    console.error('[ARMS Responder] Live Location Error:', err);
+    return res.status(500).json({ error: 'Internal server error while updating responder location' });
   }
 });
 

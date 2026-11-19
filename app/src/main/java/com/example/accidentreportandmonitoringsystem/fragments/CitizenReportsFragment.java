@@ -60,12 +60,47 @@ public class CitizenReportsFragment extends Fragment {
     }
 
     private void loadAndDisplayReports() {
+        String token = sessionManager.getAuthToken();
+        if (token != null && !token.startsWith("arms_instant_token_") && !token.startsWith("arms_fallback_token_")) {
+            com.example.accidentreportandmonitoringsystem.remote.ApiClient.get("/incidents/my-reports", token,
+                    new com.example.accidentreportandmonitoringsystem.remote.ApiClient.ApiCallback() {
+                        @Override
+                        public void onSuccess(JSONObject response) {
+                            if (!isAdded()) return;
+                            JSONArray apiReports = response.optJSONArray("reports");
+                            if (apiReports == null) apiReports = response.optJSONArray("incidents");
+                            mergeAndDisplayReports(apiReports);
+                        }
+
+                        @Override
+                        public void onError(int statusCode, String errorMessage) {
+                            if (!isAdded()) return;
+                            mergeAndDisplayReports(null);
+                        }
+                    });
+        } else {
+            mergeAndDisplayReports(null);
+        }
+    }
+
+    private void mergeAndDisplayReports(@Nullable JSONArray apiReports) {
         try {
             JSONArray local = sessionManager.getLocalReports();
             JSONArray global = ValenciaGlobalIncidentStore.getReports();
 
             JSONArray merged = new JSONArray();
             Set<String> seenRefs = new HashSet<>();
+
+            if (apiReports != null) {
+                for (int i = 0; i < apiReports.length(); i++) {
+                    JSONObject r = apiReports.getJSONObject(i);
+                    String ref = r.optString("incident_reference", "");
+                    if (!ref.isEmpty() && !seenRefs.contains(ref)) {
+                        seenRefs.add(ref);
+                        merged.put(r);
+                    }
+                }
+            }
 
             if (global != null) {
                 for (int i = 0; i < global.length(); i++) {

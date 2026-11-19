@@ -299,4 +299,41 @@ router.get('/audit-logs', authenticateToken, requireRole('SUPER_ADMIN'), async (
   }
 });
 
+/**
+ * GET /api/admin/incidents
+ * Retrieve all incidents and summary metrics for Super Admin records & analytics
+ */
+router.get('/incidents', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, incident_reference, incident_type, description, latitude, longitude,
+              landmark_address, current_status, submitted_at, created_at
+       FROM incidents
+       ORDER BY created_at DESC
+       LIMIT 100`
+    );
+
+    const byBarangay = {};
+    const byType = {};
+    for (const row of result.rows) {
+      const addr = (row.landmark_address || 'Barangay Poblacion').split(',')[0].trim() || 'Barangay Poblacion';
+      byBarangay[addr] = (byBarangay[addr] || 0) + 1;
+      const t = row.incident_type || 'OTHER_EMERGENCY';
+      byType[t] = (byType[t] || 0) + 1;
+    }
+
+    return res.json({
+      total: result.rows.length,
+      incidents: result.rows,
+      analytics: {
+        by_barangay: byBarangay,
+        by_type: byType
+      }
+    });
+  } catch (err) {
+    console.error('[ARMS Admin] Incidents Error:', err);
+    return res.status(500).json({ error: 'Internal server error while retrieving incidents' });
+  }
+});
+
 module.exports = router;
